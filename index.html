@@ -505,6 +505,11 @@
     return arr;
   }
   function renderTrend(){
+    if(typeof Chart === "undefined"){
+      document.getElementById("trendEmpty").style.display = "flex";
+      document.getElementById("trendEmpty").textContent = "Gráfico indisponível no momento (biblioteca não carregou). Seus dados continuam salvos normalmente.";
+      return;
+    }
     var months = last6Months();
     var receitaData = months.map(function(mo){
       return state.clients.filter(function(c){
@@ -550,6 +555,12 @@
     });
   }
   function renderDonut(){
+    if(typeof Chart === "undefined"){
+      document.getElementById("donutEmpty").style.display = "flex";
+      document.getElementById("donutEmpty").textContent = "Gráfico indisponível no momento.";
+      document.getElementById("donutLegend").innerHTML = "";
+      return;
+    }
     var expensesInPeriod = state.expenses.filter(function(e){ return inPeriod(e.data); });
     var totals = EXPENSE_CATS.map(function(cat){
       return expensesInPeriod.filter(function(e){ return e.categoria===cat; }).reduce(function(s,e){ return s+Number(e.valor||0); },0);
@@ -621,7 +632,11 @@
     if(delId){ if(confirm("Excluir este gasto?")){ state.expenses = state.expenses.filter(function(x){return x.id!==delId;}); saveState(); renderAll(); } }
   });
 
-  function renderAll(){ renderKpis(); renderTrend(); renderDonut(); renderClients(); renderExpenses(); }
+  function renderAll(){
+    renderKpis(); renderClients(); renderExpenses();
+    try{ renderTrend(); }catch(e){ console.error("renderTrend falhou:", e); }
+    try{ renderDonut(); }catch(e){ console.error("renderDonut falhou:", e); }
+  }
 
   /* ---------------- MODALS ---------------- */
   var modalLayer = document.getElementById("modalLayer");
