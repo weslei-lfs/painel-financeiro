@@ -441,6 +441,7 @@
           l.atividades = [];
           if(l.notas){ l.atividades.push({ id: uid(), tipo:"Nota", texto: l.notas, data: (l.data? l.data+"T09:00:00":new Date().toISOString()) }); }
         }
+        if(l.stage==="fechado" && !l.dataFechamento) l.dataFechamento = todayISO();
       });
     });
     return parsed;
@@ -500,8 +501,7 @@
   function inThisMonth(iso){ if(!iso) return false; var d=new Date(iso+"T00:00:00"), now=new Date(); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth(); }
   function computeKpis(){
     var ws = activeWs();
-    var leadsMonth = ws.leads.filter(function(l){ return inThisMonth(l.data); });
-    var fechadosMonth = leadsMonth.filter(function(l){ return l.stage==="fechado"; });
+    var fechadosMonth = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
     var receita = fechadosMonth.reduce(function(s,l){ return s+Number(l.valor||0); },0);
     var gastos = ws.expenses.filter(function(e){ return inThisMonth(e.data); }).reduce(function(s,e){ return s+Number(e.valor||0); },0);
     var totalLeads = ws.leads.length;
@@ -515,7 +515,7 @@
   function last6Months(){ var arr=[], now=new Date(); for(var i=5;i>=0;i--){ var d=new Date(now.getFullYear(), now.getMonth()-i, 1); arr.push({y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString("pt-BR",{month:"short"}).replace(".","")}); } return arr; }
   function monthlySeries(ws){
     var months = last6Months();
-    var receitaData = months.map(function(mo){ return ws.leads.filter(function(l){ if(l.stage!=="fechado"||!l.data) return false; var d=new Date(l.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,l){return s+Number(l.valor||0);},0); });
+    var receitaData = months.map(function(mo){ return ws.leads.filter(function(l){ var dt=l.dataFechamento||l.data; if(l.stage!=="fechado"||!dt) return false; var d=new Date(dt+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,l){return s+Number(l.valor||0);},0); });
     var gastosData = months.map(function(mo){ return ws.expenses.filter(function(e){ if(!e.data) return false; var d=new Date(e.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,e){return s+Number(e.valor||0);},0); });
     return { months:months, receitaData:receitaData, gastosData:gastosData };
   }
@@ -538,7 +538,7 @@
     var ctx = trendCanvasEl.getContext("2d");
     if(trendChart) trendChart.destroy();
     var trendStale = Chart.getChart(trendCanvasEl); if(trendStale) trendStale.destroy();
-    trendChart = new Chart(ctx, { data:{ labels: series.months.map(function(m){return m.label;}), datasets:[
+    trendChart = new Chart(ctx, { type:"line", data:{ labels: series.months.map(function(m){return m.label;}), datasets:[
         {label:"Receita", data:series.receitaData, borderColor:success, backgroundColor:gradientFill(success), fill:true, tension:.35, pointRadius:2, pointBackgroundColor:success, borderWidth:2},
         {label:"Gastos", data:series.gastosData, borderColor:accent, backgroundColor:gradientFill(accent), fill:true, tension:.35, pointRadius:2, pointBackgroundColor:accent, borderWidth:2}
       ] },
@@ -660,7 +660,7 @@
         e.preventDefault(); col.classList.remove("dragover");
         var id = e.dataTransfer.getData("text/plain");
         var ws = activeWs(); var l = ws.leads.find(function(x){return x.id===id;});
-        if(l){ var novaEtapa = col.getAttribute("data-stage"); if(novaEtapa!==l.stage){ l.stage = novaEtapa; pushLog(ws, l.nome+" movido para "+STAGE_LABEL[novaEtapa]); saveState(); renderAll(); }
+        if(l){ var novaEtapa = col.getAttribute("data-stage"); if(novaEtapa!==l.stage){ l.stage = novaEtapa; if(novaEtapa==="fechado") l.dataFechamento = todayISO(); pushLog(ws, l.nome+" movido para "+STAGE_LABEL[novaEtapa]); saveState(); renderAll(); }
           setTimeout(function(){ var newCard = document.querySelector('[data-lead-id="'+id+'"]'); if(newCard) newCard.classList.add("pulse"); }, 30);
         }
       });
@@ -794,13 +794,17 @@
       if(!nome){ document.getElementById("l_nome").focus(); return; }
       var tempInput = modalLayer.querySelector('input[name="l_temp"]:checked');
       var domOn = document.getElementById("l_dom_on").checked;
+      var novoStage = document.getElementById("l_stage").value;
+      var dataFechamento = lead.dataFechamento || "";
+      if(novoStage==="fechado" && lead.stage!=="fechado") dataFechamento = todayISO();
       var updated = {
         id: lead.id, nome:nome,
         nicho: document.getElementById("l_nicho").value.trim(),
         cidade: document.getElementById("l_cidade").value.trim(),
         site: document.getElementById("l_site").value.trim(),
         valor: parseFloat(document.getElementById("l_valor").value)||0,
-        stage: document.getElementById("l_stage").value,
+        stage: novoStage,
+        dataFechamento: dataFechamento,
         temperatura: tempInput ? tempInput.value : "morno",
         origem: document.getElementById("l_origem").value,
         data: document.getElementById("l_data").value || todayISO(),
@@ -918,9 +922,9 @@
   });
   document.getElementById("btnReport").addEventListener("click", function(){
     var ws = activeWs(); var now = new Date(); var monthLabel = now.toLocaleDateString("pt-BR", { month:"long", year:"numeric" });
-    var monthLeads = ws.leads.filter(function(l){ return inThisMonth(l.data); });
+    var monthLeads = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
     var monthExpenses = ws.expenses.filter(function(e){ return inThisMonth(e.data); });
-    var receita = monthLeads.filter(function(l){return l.stage==="fechado";}).reduce(function(s,l){return s+Number(l.valor||0);},0);
+    var receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0);
     var gastos = monthExpenses.reduce(function(s,e){return s+Number(e.valor||0);},0);
     var html = '<div style="font-family:Georgia,serif;max-width:720px;margin:40px auto;color:#1a1a1a;">'+
       '<h1 style="font-size:22px;margin:0 0 2px;">Relatório mensal — '+escapeHtml(ws.nome)+'</h1>'+
@@ -929,9 +933,9 @@
         '<div><div style="font-size:11px;color:#666;">RECEITA</div><div style="font-size:20px;">'+fmtBRL(receita)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">GASTOS</div><div style="font-size:20px;">'+fmtBRL(gastos)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">LUCRO</div><div style="font-size:20px;">'+fmtBRL(receita-gastos)+'</div></div></div>'+
-      '<h2 style="font-size:15px;">Leads fechados ('+monthLeads.filter(function(l){return l.stage==="fechado";}).length+')</h2>'+
+      '<h2 style="font-size:15px;">Leads fechados ('+monthLeads.length+')</h2>'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><tbody>'+
-      (monthLeads.length? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;">Nenhum lead neste mês.</td></tr>')+
+      (monthLeads.length? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;">Nenhum lead fechado neste mês.</td></tr>')+
       '</tbody></table><div style="margin-top:32px;font-size:10px;color:#999;">Gerado em '+new Date().toLocaleString("pt-BR")+'</div></div>';
     document.getElementById("printReport").innerHTML = html; window.print();
   });
