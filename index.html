@@ -519,11 +519,12 @@
     var gastosData = months.map(function(mo){ return ws.expenses.filter(function(e){ if(!e.data) return false; var d=new Date(e.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,e){return s+Number(e.valor||0);},0); });
     return { months:months, receitaData:receitaData, gastosData:gastosData };
   }
-  function gradientFill(colorHex){
+  function gradientFill(colorCss){
     return function(context){
       var chart = context.chart; var area = chart.chartArea; if(!area) return null;
       var g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-      g.addColorStop(0, colorHex+"55"); g.addColorStop(1, colorHex+"02");
+      g.addColorStop(0, "color-mix(in srgb, " + colorCss + " 33%, transparent)");
+      g.addColorStop(1, "color-mix(in srgb, " + colorCss + " 1%, transparent)");
       return g;
     };
   }
