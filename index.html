@@ -534,8 +534,10 @@
     var hasData = series.receitaData.some(function(v){return v>0;}) || series.gastosData.some(function(v){return v>0;});
     el.style.display = hasData ? "none":"flex"; el.textContent="Sem lançamentos ainda.";
     var css=getComputedStyle(root); var muted=css.getPropertyValue("--text-faint").trim(); var border=css.getPropertyValue("--border").trim(); var accent=css.getPropertyValue("--accent").trim(); var success=css.getPropertyValue("--success").trim();
-    var ctx = document.getElementById("trendChart").getContext("2d");
+    var trendCanvasEl = document.getElementById("trendChart");
+    var ctx = trendCanvasEl.getContext("2d");
     if(trendChart) trendChart.destroy();
+    var trendStale = Chart.getChart(trendCanvasEl); if(trendStale) trendStale.destroy();
     trendChart = new Chart(ctx, { data:{ labels: series.months.map(function(m){return m.label;}), datasets:[
         {label:"Receita", data:series.receitaData, borderColor:success, backgroundColor:gradientFill(success), fill:true, tension:.35, pointRadius:2, pointBackgroundColor:success, borderWidth:2},
         {label:"Gastos", data:series.gastosData, borderColor:accent, backgroundColor:gradientFill(accent), fill:true, tension:.35, pointRadius:2, pointBackgroundColor:accent, borderWidth:2}
@@ -550,8 +552,10 @@
     var totals = EXPENSE_CATS.map(function(c){ return ws.expenses.filter(function(e){return e.categoria===c;}).reduce(function(s,e){return s+Number(e.valor||0);},0); });
     var total = totals.reduce(function(a,b){return a+b;},0);
     el.style.display = total>0?"none":"flex";
-    var ctx = document.getElementById("donutChart").getContext("2d");
+    var donutCanvasEl = document.getElementById("donutChart");
+    var ctx = donutCanvasEl.getContext("2d");
     if(donutChart) donutChart.destroy();
+    var donutStale = Chart.getChart(donutCanvasEl); if(donutStale) donutStale.destroy();
     donutChart = new Chart(ctx, { type:"doughnut", data:{ labels:EXPENSE_CATS, datasets:[{ data:totals, backgroundColor:EXPENSE_CATS.map(function(c){return CAT_COLORS[c];}), borderWidth:0 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:"66%", plugins:{legend:{display:false}} } });
     document.getElementById("donutLegend").innerHTML = EXPENSE_CATS.map(function(c,i){ return '<div><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+CAT_COLORS[c]+';margin-right:4px;"></span>'+fmtBRL(totals[i])+'</div>'; }).join("");
   }
@@ -564,8 +568,10 @@
     var byTemp = { quente:[], morno:[], frio:[] };
     abertos.forEach(function(l){ var t=l.temperatura||"morno"; byTemp[t].push({ x: daysSince(l.data), y: Number(l.valor||0), r: Math.max(5, Math.min(20, Number(l.valor||0)/40)), nome:l.nome }); });
     var css = getComputedStyle(root); var muted = css.getPropertyValue("--text-faint").trim(); var border = css.getPropertyValue("--border").trim();
-    var ctx = document.getElementById("radarChart").getContext("2d");
+    var radarCanvasEl = document.getElementById("radarChart");
+    var ctx = radarCanvasEl.getContext("2d");
     if(radarChart) radarChart.destroy();
+    var radarStale = Chart.getChart(radarCanvasEl); if(radarStale) radarStale.destroy();
     radarChart = new Chart(ctx, {
       type:"bubble",
       data:{ datasets:[
