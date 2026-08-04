@@ -93,7 +93,9 @@
   .side-mini-stat{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:9px 10px; }
   .side-mini-stat .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px; font-weight:700; }
   .side-mini-stat .v{ font-family:var(--mono); font-size:17px; font-weight:700; margin-top:3px; }
-  .side-foot{ padding:12px 14px; border-top:1px solid var(--border); font-size:9.5px; color:var(--text-faint); }
+  .side-foot{ padding:10px 14px 12px; border-top:1px solid var(--border); font-size:9.5px; color:var(--text-faint); }
+  .side-blessing{ font-size:10px; line-height:1.5; color:var(--text-muted); font-style:italic; margin-bottom:8px; }
+  .side-blessing b{ color:var(--accent); font-weight:700; font-style:normal; }
 
   /* ================= MAIN ================= */
   .main{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; min-height:0; position:relative; z-index:2; }
@@ -348,7 +350,10 @@
       <button class="pipeline-cta" id="btnOpenReunioes"><span>📅 Reuniões</span><span class="badge tabular" id="reuniaoBadge">0</span></button>
     </div>
 
-    <div class="side-foot">Dados salvos neste navegador.</div>
+    <div class="side-foot">
+      <div class="side-blessing">🙏 Cada nome aqui é <b>abençoado</b>. Prospero com honestidade, sabedoria e excelência — e essa prosperidade já é realidade.</div>
+      Dados salvos neste navegador.
+    </div>
   </aside>
 
   <div class="main">
