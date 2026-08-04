@@ -162,24 +162,22 @@
   .chip.cancelada{ background:var(--surface-3); color:var(--text-faint); text-decoration:line-through; }
   .ws-type-ic{ display:inline-block; width:16px; opacity:.75; }
 
-  /* -------- reuniões (tela cheia) -------- */
-  .reuniao-overlay{ position:fixed; inset:0; z-index:95; background:var(--bg); display:flex; flex-direction:column; }
-  .reuniao-overlay-head{ flex:0 0 auto; display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--border); background:var(--bg-1); }
-  .reuniao-overlay-head h2{ font-size:15px; font-weight:800; margin:0; }
-  .reuniao-overlay-actions{ margin-left:auto; display:flex; align-items:center; gap:10px; }
-  .reuniao-overlay-actions input{ border:1px solid var(--border); background:var(--surface-2); padding:6px 10px; font-size:11px; width:150px; color:var(--text); border-radius:6px; }
-  .reuniao-body{ flex:1 1 auto; overflow-y:auto; padding:20px 26px; max-width:760px; margin:0 auto; width:100%; }
-  .reuniao-group-label{ font-size:11px; text-transform:uppercase; letter-spacing:.5px; font-weight:800; color:var(--text-faint); margin:22px 0 10px; }
+  /* -------- reuniões (aba dentro do CRM) -------- */
+  .reuniao-inline-wrap{ flex:1; min-height:0; display:flex; flex-direction:column; }
+  .reuniao-inline-toolbar{ display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--border); flex:0 0 auto; }
+  .reuniao-inline-toolbar input{ border:1px solid var(--border); background:var(--surface-2); padding:5px 8px; font-size:10.5px; width:110px; color:var(--text); margin-left:auto; border-radius:6px; }
+  .reuniao-inline-body{ flex:1 1 auto; overflow-y:auto; padding:10px 12px; }
+  .reuniao-group-label{ font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; font-weight:800; color:var(--text-faint); margin:14px 0 6px; }
   .reuniao-group-label:first-child{ margin-top:0; }
-  .reuniao-card{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:14px; margin-bottom:10px; box-shadow:var(--panel-shadow); }
+  .reuniao-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:7px; padding:8px 10px; display:flex; align-items:center; gap:10px; margin-bottom:6px; }
   .reuniao-card.hoje{ border-color:hsl(var(--h) var(--s) 58% / .45); }
-  .reuniao-card .r-time{ font-family:var(--mono); font-size:15px; font-weight:800; color:var(--accent); flex:0 0 56px; }
+  .reuniao-card .r-time{ font-family:var(--mono); font-size:11.5px; font-weight:800; color:var(--accent); flex:0 0 40px; }
   .reuniao-card .r-info{ flex:1; min-width:0; }
-  .reuniao-card .r-cliente{ font-weight:700; font-size:13px; }
-  .reuniao-card .r-assunto{ font-size:11.5px; color:var(--text-muted); margin-top:2px; }
-  .reuniao-card .r-actions{ display:flex; gap:6px; flex:0 0 auto; }
-  .reuniao-empty{ text-align:center; padding:60px 20px; color:var(--text-faint); }
-  .reuniao-empty .big{ font-size:32px; margin-bottom:10px; }
+  .reuniao-card .r-cliente{ font-weight:700; font-size:11.5px; display:flex; align-items:center; gap:6px; }
+  .reuniao-card .r-assunto{ font-size:10px; color:var(--text-muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .reuniao-card .r-actions{ display:flex; gap:5px; flex:0 0 auto; }
+  .reuniao-empty{ text-align:center; padding:30px 16px; color:var(--text-faint); }
+  .reuniao-empty .big{ font-size:24px; margin-bottom:8px; }
   .icon-btn{ border:1px solid var(--border); background:var(--surface-2); width:20px;height:20px; border-radius:5px; display:flex;align-items:center;justify-content:center; font-size:10px; color:var(--text-muted); }
   .icon-btn:hover{ color:var(--text); border-color:var(--border-strong); }
   .row-actions{ display:flex; gap:4px; opacity:0; } tbody tr:hover .row-actions{ opacity:1; }
@@ -249,7 +247,7 @@
   .kanban-full .lead-card .v{ font-size:12.5px; }
 
   /* -------- lead detail modal / timeline -------- */
-  .modal-backdrop{ position:fixed; inset:0; background:rgba(3,5,10,.72); display:flex; align-items:center; justify-content:center; z-index:90; padding:20px; }
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(3,5,10,.72); display:flex; align-items:center; justify-content:center; z-index:96; padding:20px; }
   .modal{ background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; width:480px; max-width:100%; max-height:88vh; overflow:auto; padding:20px; }
   .modal.wide{ width:560px; }
   .modal h3{ margin:0 0 14px; font-size:15px; font-weight:800; }
@@ -333,7 +331,7 @@
   <aside class="sidebar">
     <div class="side-logo">
       <div class="glyph">V</div>
-      <div class="word">VÉRTICE<small>terminal de negócios</small></div>
+      <div class="word">VÉRTICE<small>Weslei Souza</small></div>
     </div>
 
     <div class="workspace-picker">
@@ -347,7 +345,6 @@
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
-      <button class="pipeline-cta" id="btnOpenReunioes"><span>📅 Reuniões</span><span class="badge tabular" id="reuniaoBadge">0</span></button>
     </div>
 
     <div class="side-foot">
@@ -367,7 +364,7 @@
       <div class="panel z-crm">
         <div id="primaryAgencia">
           <div class="crm-toolbar">
-            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button></div>
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button></div>
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
@@ -379,6 +376,13 @@
           <div class="radar-wrap" id="crmRadar" style="display:none">
             <div class="chart-wrap"><canvas id="radarChart"></canvas><div class="empty-mini" id="radarEmpty" style="display:none">Sem leads em aberto pra mostrar no radar.</div></div>
             <div class="radar-legend"><div><span class="dot" style="background:var(--quente)"></span>Quente</div><div><span class="dot" style="background:var(--morno)"></span>Morno</div><div><span class="dot" style="background:var(--frio)"></span>Frio</div></div>
+          </div>
+          <div class="reuniao-inline-wrap" id="crmReunioes" style="display:none">
+            <div class="reuniao-inline-toolbar">
+              <input id="reuniaoSearch" placeholder="Buscar reunião...">
+              <button class="btn primary sm" id="btnNewReuniao">+ Reunião</button>
+            </div>
+            <div class="reuniao-inline-body" id="reuniaoBody"></div>
           </div>
         </div>
         <div id="primaryDropship" style="display:none">
@@ -468,18 +472,6 @@
     </div>
   </div>
   <div class="kanban kanban-full" id="crmPipeline"></div>
-</div>
-
-<div id="reuniaoOverlay" class="reuniao-overlay" style="display:none">
-  <div class="reuniao-overlay-head">
-    <h2>Reuniões — <span id="reuniaoWsName"></span></h2>
-    <div class="reuniao-overlay-actions">
-      <input id="reuniaoSearch" placeholder="Buscar...">
-      <button class="btn primary sm" id="btnNewReuniao">+ Reunião</button>
-      <button class="btn sm" id="btnCloseReuniao">✕ Fechar (Esc)</button>
-    </div>
-  </div>
-  <div class="reuniao-body" id="reuniaoBody"></div>
 </div>
 
 <script>/*!
@@ -879,7 +871,9 @@
       document.querySelectorAll(".crm-tabs button").forEach(function(x){ x.classList.toggle("active", x===b); });
       document.getElementById("crmList").style.display = crmTab==="lista" ? "flex":"none";
       document.getElementById("crmRadar").style.display = crmTab==="radar" ? "flex":"none";
+      document.getElementById("crmReunioes").style.display = crmTab==="reunioes" ? "flex":"none";
       if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
+      if(crmTab==="reunioes"){ renderReunioes(); }
     });
   });
   document.getElementById("crmSearch").addEventListener("input", function(e){ crmSearchTerm = e.target.value.toLowerCase(); renderCrm(); });
@@ -1446,22 +1440,13 @@
       if(editBtn){ var r2 = ws.reunioes.find(function(x){return x.id===editBtn.getAttribute("data-edit-reuniao");}); if(r2) openReuniaoModal(r2); }
     };
     var hoje = todayISO();
-    document.getElementById("reuniaoBadge").textContent = ws.reunioes.filter(function(r){ return r.status==="agendada" && r.data<=hoje; }).length;
+    var pendentesHoje = ws.reunioes.filter(function(r){ return r.status==="agendada" && r.data<=hoje; }).length;
+    var badge = document.getElementById("reuniaoBadge");
+    badge.textContent = pendentesHoje;
+    badge.style.display = pendentesHoje>0 ? "inline":"none";
   }
-  function openReuniaoOverlay(){
-    document.getElementById("reuniaoWsName").textContent = activeWs().nome;
-    document.getElementById("reuniaoSearch").value = reuniaoSearchTerm;
-    document.getElementById("reuniaoOverlay").style.display = "flex";
-    renderReunioes();
-  }
-  function closeReuniaoOverlay(){ document.getElementById("reuniaoOverlay").style.display = "none"; }
-  document.getElementById("btnOpenReunioes").addEventListener("click", openReuniaoOverlay);
-  document.getElementById("btnCloseReuniao").addEventListener("click", closeReuniaoOverlay);
   document.getElementById("btnNewReuniao").addEventListener("click", function(){ openReuniaoModal(null); });
   document.getElementById("reuniaoSearch").addEventListener("input", function(e){ reuniaoSearchTerm = e.target.value; renderReunioes(); });
-  document.addEventListener("keydown", function(e){
-    if(e.key==="Escape" && document.getElementById("reuniaoOverlay").style.display!=="none") closeReuniaoOverlay();
-  });
 
   /* ---------------- COMMAND PALETTE ---------------- */
   var cmdkLayer = document.getElementById("cmdkLayer");
