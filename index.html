@@ -155,7 +155,29 @@
   .chip.testando{ background:var(--warning-soft); color:var(--warning); }
   .chip.escalando{ background:var(--success-soft); color:var(--success); }
   .chip.pausado{ background:var(--surface-3); color:var(--text-faint); }
+  .chip.agendada{ background:var(--warning-soft); color:var(--warning); }
+  .chip.realizada{ background:var(--success-soft); color:var(--success); }
+  .chip.cancelada{ background:var(--surface-3); color:var(--text-faint); text-decoration:line-through; }
   .ws-type-ic{ display:inline-block; width:16px; opacity:.75; }
+
+  /* -------- reuniões (tela cheia) -------- */
+  .reuniao-overlay{ position:fixed; inset:0; z-index:95; background:var(--bg); display:flex; flex-direction:column; }
+  .reuniao-overlay-head{ flex:0 0 auto; display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--border); background:var(--bg-1); }
+  .reuniao-overlay-head h2{ font-size:15px; font-weight:800; margin:0; }
+  .reuniao-overlay-actions{ margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .reuniao-overlay-actions input{ border:1px solid var(--border); background:var(--surface-2); padding:6px 10px; font-size:11px; width:150px; color:var(--text); border-radius:6px; }
+  .reuniao-body{ flex:1 1 auto; overflow-y:auto; padding:20px 26px; max-width:760px; margin:0 auto; width:100%; }
+  .reuniao-group-label{ font-size:11px; text-transform:uppercase; letter-spacing:.5px; font-weight:800; color:var(--text-faint); margin:22px 0 10px; }
+  .reuniao-group-label:first-child{ margin-top:0; }
+  .reuniao-card{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:14px; margin-bottom:10px; box-shadow:var(--panel-shadow); }
+  .reuniao-card.hoje{ border-color:hsl(var(--h) var(--s) 58% / .45); }
+  .reuniao-card .r-time{ font-family:var(--mono); font-size:15px; font-weight:800; color:var(--accent); flex:0 0 56px; }
+  .reuniao-card .r-info{ flex:1; min-width:0; }
+  .reuniao-card .r-cliente{ font-weight:700; font-size:13px; }
+  .reuniao-card .r-assunto{ font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+  .reuniao-card .r-actions{ display:flex; gap:6px; flex:0 0 auto; }
+  .reuniao-empty{ text-align:center; padding:60px 20px; color:var(--text-faint); }
+  .reuniao-empty .big{ font-size:32px; margin-bottom:10px; }
   .icon-btn{ border:1px solid var(--border); background:var(--surface-2); width:20px;height:20px; border-radius:5px; display:flex;align-items:center;justify-content:center; font-size:10px; color:var(--text-muted); }
   .icon-btn:hover{ color:var(--text); border-color:var(--border-strong); }
   .row-actions{ display:flex; gap:4px; opacity:0; } tbody tr:hover .row-actions{ opacity:1; }
@@ -245,6 +267,21 @@
   .danger-link{ color:var(--danger); background:none; border:none; font-size:11px; font-weight:700; margin-right:auto; }
   .domain-sub{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:10px; margin-top:-4px; margin-bottom:12px; }
 
+  /* -------- lead / client view (read-only profile) -------- */
+  .name-cell{ cursor:pointer; }
+  .lv-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:16px; }
+  .lv-name{ font-size:17px; font-weight:800; }
+  .lv-sub{ font-size:11.5px; color:var(--text-faint); margin-top:2px; }
+  .lv-chips{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .lv-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .lv-item label{ display:block; font-size:9.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:4px; }
+  .lv-item .val{ font-size:13px; }
+  .lv-item .val.muted{ color:var(--text-faint); }
+  .lv-actions-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .btn-wa-solid{ background:#25d366; color:#04150a; border:none; }
+  .btn-wa-solid:hover{ filter:brightness(1.06); }
+  .lv-domain-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:16px; display:flex; gap:18px; flex-wrap:wrap; }
+
   .timeline-section{ border-top:1px solid var(--border); margin-top:16px; padding-top:14px; }
   .timeline-add{ display:flex; gap:6px; margin-bottom:12px; }
   .timeline-add select{ border:1px solid var(--border); background:var(--surface-2); border-radius:6px; padding:7px; font-size:11px; flex:0 0 100px; }
@@ -308,6 +345,7 @@
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
+      <button class="pipeline-cta" id="btnOpenReunioes"><span>📅 Reuniões</span><span class="badge tabular" id="reuniaoBadge">0</span></button>
     </div>
 
     <div class="side-foot">Dados salvos neste navegador.</div>
@@ -427,6 +465,18 @@
   <div class="kanban kanban-full" id="crmPipeline"></div>
 </div>
 
+<div id="reuniaoOverlay" class="reuniao-overlay" style="display:none">
+  <div class="reuniao-overlay-head">
+    <h2>Reuniões — <span id="reuniaoWsName"></span></h2>
+    <div class="reuniao-overlay-actions">
+      <input id="reuniaoSearch" placeholder="Buscar...">
+      <button class="btn primary sm" id="btnNewReuniao">+ Reunião</button>
+      <button class="btn sm" id="btnCloseReuniao">✕ Fechar (Esc)</button>
+    </div>
+  </div>
+  <div class="reuniao-body" id="reuniaoBody"></div>
+</div>
+
 <script>/*!
  * Chart.js v4.5.0
  * https://www.chartjs.org
@@ -455,6 +505,8 @@
   var PRODUTO_STATUS = ["testando","escalando","pausado"];
   var PRODUTO_STATUS_LABEL = { testando:"Testando", escalando:"Escalando", pausado:"Pausado" };
   var PRODUTO_STATUS_COLOR = { testando:"#ffb648", escalando:"#2fd480", pausado:"#7a86a3" };
+  var REUNIAO_STATUS = ["agendada","realizada","cancelada"];
+  var REUNIAO_STATUS_LABEL = { agendada:"Agendada", realizada:"Realizada", cancelada:"Cancelada" };
   var STAGES = ["novo","contato","previa","negociando","fechado","perdido"];
   var STAGE_LABEL = { novo:"Novo", contato:"Contato", previa:"Prévia", negociando:"Negociando", fechado:"Fechado", perdido:"Perdido" };
   var TEMP_LABEL = { quente:"🔥 Quente", morno:"🌤 Morno", frio:"❄ Frio" };
@@ -484,7 +536,7 @@
   }
   var DOMAIN_STATUS_LABEL = { ok:"Em dia", soon:"Vence em breve", late:"Vencido", none:"—" };
 
-  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 354, leads: [], expenses: [], produtos: [], vendas: [], activityLog: [] }; }
+  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 354, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [] }; }
   function pushLog(ws, texto){
     ws.activityLog = ws.activityLog || [];
     ws.activityLog.unshift({ id: uid(), texto: texto, data: new Date().toISOString() });
@@ -510,6 +562,12 @@
       ws.expenses = ws.expenses || [];
       ws.produtos = ws.produtos || [];
       ws.vendas = ws.vendas || [];
+      ws.reunioes = ws.reunioes || [];
+      ws.reunioes.forEach(function(r){
+        if(!r.status) r.status = "agendada";
+        if(typeof r.hora !== "string") r.hora = "";
+        if(typeof r.notas !== "string") r.notas = "";
+      });
       ws.produtos.forEach(function(p){
         if(!p.status) p.status = "testando";
         if(typeof p.fornecedor !== "string") p.fornecedor = "";
@@ -660,8 +718,13 @@
       if(d<=30) return { texto: "Domínio de "+l.nome+" vence em "+d+" dia(s)", cls:"warn" };
       return null;
     }).filter(Boolean);
+    var hoje = todayISO();
+    var reuniaoAlerts = (ws.reunioes||[]).filter(function(r){ return r.status==="agendada" && r.data<=hoje; }).map(function(r){
+      if(r.data<hoje) return { texto: "Reunião com "+r.clienteNome+" ficou pra trás (era "+fmtDateShort(r.data)+")", cls:"alert" };
+      return { texto: "Reunião com "+r.clienteNome+" hoje"+(r.hora?" às "+r.hora:""), cls:"warn" };
+    });
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
-    var items = alerts.concat(normal);
+    var items = alerts.concat(reuniaoAlerts).concat(normal);
     if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
@@ -874,7 +937,7 @@
     document.getElementById("crmListRows").innerHTML = list.map(function(l){
       var t = l.temperatura||"morno";
       return '<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+TEMP_COLOR[t]+'"></span></td>'+
-        '<td class="name-cell"><div class="primary">'+escapeHtml(l.nome)+'</div><div class="secondary">'+escapeHtml(l.cidade||"")+'</div></td>'+
+        '<td class="name-cell" data-view-lead="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div><div class="secondary">'+escapeHtml(l.cidade||"")+'</div></td>'+
         '<td>'+escapeHtml(l.cidade||"—")+'</td>'+
         '<td><span class="chip '+l.stage+'">'+STAGE_LABEL[l.stage]+'</span></td>'+
         '<td class="num tabular">'+fmtBRL(l.valor)+'</td>'+
@@ -884,8 +947,10 @@
     bindKanbanEvents();
     document.getElementById("crmListRows").onclick = function(e){
       var editId = e.target.getAttribute("data-edit-lead"); var delId = e.target.getAttribute("data-del-lead");
-      if(editId){ var l = ws.leads.find(function(x){return x.id===editId;}); if(l) openLeadModal(l); }
-      if(delId){ if(confirm("Excluir este lead?")){ ws.leads = ws.leads.filter(function(x){return x.id!==delId;}); pushLog(ws,"Lead excluído"); saveState(); renderAll(); } }
+      var viewCell = e.target.closest("[data-view-lead]");
+      if(editId){ var l = ws.leads.find(function(x){return x.id===editId;}); if(l) openLeadModal(l); return; }
+      if(delId){ if(confirm("Excluir este lead?")){ ws.leads = ws.leads.filter(function(x){return x.id!==delId;}); pushLog(ws,"Lead excluído"); saveState(); renderAll(); } return; }
+      if(viewCell){ var l2 = ws.leads.find(function(x){return x.id===viewCell.getAttribute("data-view-lead");}); if(l2) openLeadViewModal(l2); }
     };
     if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
   }
@@ -900,7 +965,7 @@
   }
   function bindKanbanEvents(){
     document.querySelectorAll(".lead-card").forEach(function(card){
-      card.addEventListener("click", function(){ var l = activeWs().leads.find(function(x){return x.id===card.getAttribute("data-lead-id");}); if(l) openLeadModal(l); });
+      card.addEventListener("click", function(){ var l = activeWs().leads.find(function(x){return x.id===card.getAttribute("data-lead-id");}); if(l) openLeadViewModal(l); });
       card.addEventListener("dragstart", function(e){ card.classList.add("dragging"); e.dataTransfer.setData("text/plain", card.getAttribute("data-lead-id")); });
       card.addEventListener("dragend", function(){ card.classList.remove("dragging"); });
     });
@@ -993,6 +1058,7 @@
     renderDominios();
     renderProdutos();
     renderVendas();
+    renderReunioes();
     renderFinanceiro();
     renderConfig();
     try{ renderTrendChart(); }catch(e){ console.error("trend falhou", e); }
@@ -1012,6 +1078,35 @@
     }).join("");
   }
 
+  function openLeadViewModal(lead){
+    var t = lead.temperatura||"morno";
+    var tIcon = t==="quente"?"🔥":t==="frio"?"❄":"🌤";
+    var waHref = waLink(lead.whatsapp);
+    var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal wide">'+
+      '<div class="lv-head">'+
+        '<div><div class="lv-name">'+escapeHtml(lead.nome)+'</div><div class="lv-sub">'+escapeHtml(lead.nicho||"—")+(lead.cidade?" · "+escapeHtml(lead.cidade):"")+'</div></div>'+
+        '<div class="lv-chips"><span class="chip '+lead.stage+'">'+STAGE_LABEL[lead.stage]+'</span><span class="chip" style="background:var(--surface-3);color:var(--text-muted);">'+tIcon+' '+TEMP_LABEL[t].replace(/^\S+\s/,"")+'</span></div>'+
+      '</div>'+
+      '<div class="lv-grid">'+
+        '<div class="lv-item"><label>Valor</label><div class="val">'+fmtBRL(lead.valor)+'</div></div>'+
+        '<div class="lv-item"><label>Origem</label><div class="val">'+escapeHtml(lead.origem||"—")+'</div></div>'+
+        '<div class="lv-item"><label>Criado em</label><div class="val">'+fmtDateShort(lead.data)+'</div></div>'+
+        '<div class="lv-item"><label>Fechado em</label><div class="val'+(lead.dataFechamento?"":" muted")+'">'+(lead.dataFechamento?fmtDateShort(lead.dataFechamento):"—")+'</div></div>'+
+      '</div>'+
+      '<div class="lv-actions-row">'+
+        (waHref ? '<a class="btn btn-wa-solid" href="'+waHref+'" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>' : '')+
+        (lead.site ? '<a class="btn" href="'+escapeHtml(safeUrl(lead.site))+'" target="_blank" rel="noopener">🔗 Ver site entregue</a>' : '')+
+      '</div>'+
+      (dom.contratado ? '<div class="lv-domain-box"><div class="lv-item"><label>Domínio</label><div class="val"><span class="chip '+domainStatus(lead)+'">'+DOMAIN_STATUS_LABEL[domainStatus(lead)]+'</span></div></div><div class="lv-item"><label>Vencimento</label><div class="val">'+fmtDateShort(dom.vencimento)+'</div></div><div class="lv-item"><label>Pago por</label><div class="val">'+escapeHtml(dom.pagoPor||"—")+'</div></div></div>' : '')+
+      '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
+        '<div class="timeline-list" style="margin-top:8px;">'+timelineHtml(lead.atividades)+'</div></div>'+
+      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
+      '</div></div>';
+    document.getElementById("lv_close").addEventListener("click", closeModal);
+    document.getElementById("lv_edit").addEventListener("click", function(){ openLeadModal(lead); });
+  }
   function openLeadModal(lead){
     var editing = !!lead;
     lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"} };
@@ -1241,6 +1336,128 @@
     };
   }
 
+  /* ---------------- REUNIÕES ---------------- */
+  var reuniaoSearchTerm = "";
+  function openReuniaoModal(reuniao){
+    var editing = !!reuniao;
+    var ws = activeWs();
+    reuniao = reuniao || { id:uid(), leadId:"", clienteNome:"", data:todayISO(), hora:"", assunto:"", notas:"", status:"agendada" };
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal">'+
+      '<h3>'+(editing?"Editar reunião":"Nova reunião")+'</h3>'+
+      '<div class="field"><label>Cliente / Contato</label>'+
+        (ws.leads.length ? '<select id="rm_lead_pick" style="margin-bottom:6px;"><option value="">— Selecionar lead cadastrado —</option>'+ws.leads.map(function(l){return '<option value="'+l.id+'"'+(reuniao.leadId===l.id?" selected":"")+'>'+escapeHtml(l.nome)+'</option>';}).join("")+'</select>' : '')+
+        '<input id="rm_cliente" value="'+escapeHtml(reuniao.clienteNome)+'" placeholder="Nome do cliente"></div>'+
+      '<div class="field-row"><div class="field"><label>Data</label><input id="rm_data" type="date" value="'+reuniao.data+'"></div><div class="field"><label>Hora</label><input id="rm_hora" type="time" value="'+reuniao.hora+'"></div></div>'+
+      '<div class="field"><label>Assunto</label><input id="rm_assunto" value="'+escapeHtml(reuniao.assunto)+'" placeholder="Ex: Apresentar prévia do site"></div>'+
+      '<div class="field"><label>Notas</label><textarea id="rm_notas" placeholder="Detalhes, link da chamada, etc.">'+escapeHtml(reuniao.notas)+'</textarea></div>'+
+      (editing ? '<div class="field"><label>Status</label><div class="temp-radio" id="rmStatusGroup">'+
+        REUNIAO_STATUS.map(function(s){ return '<label class="'+(reuniao.status===s?"checked":"")+'" data-status-opt="'+s+'"><input type="radio" name="rm_status" value="'+s+'"'+(reuniao.status===s?" checked":"")+'><span>'+REUNIAO_STATUS_LABEL[s]+'</span></label>'; }).join("")+
+      '</div></div>' : '')+
+      '<div class="modal-actions">'+(editing?'<button class="danger-link" id="rm_delete">Excluir</button>':'')+'<button class="btn" id="rm_cancel">Cancelar</button><button class="btn primary" id="rm_save">Salvar</button></div>'+
+      '</div></div>';
+    document.getElementById("rm_cancel").addEventListener("click", closeModal);
+    var leadPick = document.getElementById("rm_lead_pick");
+    if(leadPick){
+      leadPick.addEventListener("change", function(){
+        var l = ws.leads.find(function(x){return x.id===leadPick.value;});
+        if(l) document.getElementById("rm_cliente").value = l.nome;
+      });
+    }
+    if(editing){
+      document.querySelectorAll('#rmStatusGroup input[name="rm_status"]').forEach(function(r){
+        r.addEventListener("change", function(){ document.querySelectorAll('#rmStatusGroup label').forEach(function(lb){ lb.classList.toggle("checked", lb.getAttribute("data-status-opt")===r.value); }); });
+      });
+      document.getElementById("rm_delete").addEventListener("click", function(){
+        if(confirm("Excluir esta reunião?")){
+          ws.reunioes = ws.reunioes.filter(function(x){return x.id!==reuniao.id;});
+          saveState(); closeModal(); renderAll();
+        }
+      });
+    }
+    document.getElementById("rm_save").addEventListener("click", function(){
+      var cliente = document.getElementById("rm_cliente").value.trim();
+      if(!cliente){ document.getElementById("rm_cliente").focus(); return; }
+      var statusInput = editing ? modalLayer.querySelector('input[name="rm_status"]:checked') : null;
+      var updated = {
+        id: reuniao.id,
+        leadId: leadPick ? leadPick.value : (reuniao.leadId||""),
+        clienteNome: cliente,
+        data: document.getElementById("rm_data").value || todayISO(),
+        hora: document.getElementById("rm_hora").value,
+        assunto: document.getElementById("rm_assunto").value.trim(),
+        notas: document.getElementById("rm_notas").value.trim(),
+        status: statusInput ? statusInput.value : "agendada"
+      };
+      var idx = ws.reunioes.findIndex(function(x){return x.id===reuniao.id;});
+      var isNew = idx===-1;
+      if(!isNew) ws.reunioes[idx]=updated; else ws.reunioes.push(updated);
+      pushLog(ws, (isNew?"Reunião marcada: ":"Reunião atualizada: ")+cliente+" em "+fmtDateShort(updated.data));
+      saveState(); closeModal(); renderAll();
+    });
+  }
+  function reuniaoBucket(r){
+    if(r.status!=="agendada") return "concluidas";
+    var hoje = todayISO();
+    if(r.data<hoje) return "atrasadas";
+    if(r.data===hoje) return "hoje";
+    var amanha = new Date(); amanha.setDate(amanha.getDate()+1);
+    if(r.data===amanha.toISOString().slice(0,10)) return "amanha";
+    var diffDays = Math.round((new Date(r.data+"T00:00:00")-new Date(hoje+"T00:00:00"))/86400000);
+    return diffDays<=7 ? "semana" : "depois";
+  }
+  function reuniaoCardHtml(r){
+    var isHoje = r.data===todayISO() && r.status==="agendada";
+    return '<div class="reuniao-card'+(isHoje?" hoje":"")+'">'+
+      '<div class="r-time tabular">'+(r.hora||"—")+'</div>'+
+      '<div class="r-info"><div class="r-cliente">'+escapeHtml(r.clienteNome)+' <span class="chip '+r.status+'" style="margin-left:6px;">'+REUNIAO_STATUS_LABEL[r.status]+'</span></div>'+
+      '<div class="r-assunto">'+(r.assunto?escapeHtml(r.assunto)+" · ":"")+fmtDateShort(r.data)+'</div></div>'+
+      '<div class="r-actions">'+
+      (r.status==="agendada" ? '<button class="icon-btn" data-done-reuniao="'+r.id+'" title="Marcar como realizada">✓</button>' : '')+
+      '<button class="icon-btn" data-edit-reuniao="'+r.id+'">✎</button>'+
+      '<button class="icon-btn" data-del-reuniao="'+r.id+'">✕</button>'+
+      '</div></div>';
+  }
+  var REUNIAO_BUCKET_ORDER = ["atrasadas","hoje","amanha","semana","depois","concluidas"];
+  var REUNIAO_BUCKET_LABEL = { atrasadas:"Atrasadas", hoje:"Hoje", amanha:"Amanhã", semana:"Esta semana", depois:"Mais tarde", concluidas:"Concluídas" };
+  function renderReunioes(){
+    var ws = activeWs();
+    var t = reuniaoSearchTerm.toLowerCase();
+    var list = ws.reunioes.filter(function(r){ return !t || (r.clienteNome||"").toLowerCase().indexOf(t)>-1 || (r.assunto||"").toLowerCase().indexOf(t)>-1; });
+    list.sort(function(a,b){ return (a.data+"T"+(a.hora||"00:00")).localeCompare(b.data+"T"+(b.hora||"00:00")); });
+    var buckets = {};
+    list.forEach(function(r){ var b = reuniaoBucket(r); (buckets[b]=buckets[b]||[]).push(r); });
+    var html = "";
+    REUNIAO_BUCKET_ORDER.forEach(function(b){
+      if(!buckets[b] || !buckets[b].length) return;
+      html += '<div class="reuniao-group-label">'+REUNIAO_BUCKET_LABEL[b]+'</div>'+ buckets[b].map(reuniaoCardHtml).join("");
+    });
+    var body = document.getElementById("reuniaoBody");
+    body.innerHTML = html || '<div class="reuniao-empty"><div class="big">📅</div><p>Nenhuma reunião agendada ainda. Clique em "+ Reunião" pra marcar a primeira.</p></div>';
+    body.onclick = function(e){
+      var editBtn = e.target.closest("[data-edit-reuniao]"); var doneBtn = e.target.closest("[data-done-reuniao]"); var delBtn = e.target.closest("[data-del-reuniao]");
+      if(doneBtn){ var r1 = ws.reunioes.find(function(x){return x.id===doneBtn.getAttribute("data-done-reuniao");}); if(r1){ r1.status="realizada"; saveState(); renderAll(); } return; }
+      if(delBtn){ if(confirm("Excluir esta reunião?")){ ws.reunioes = ws.reunioes.filter(function(x){return x.id!==delBtn.getAttribute("data-del-reuniao");}); saveState(); renderAll(); } return; }
+      if(editBtn){ var r2 = ws.reunioes.find(function(x){return x.id===editBtn.getAttribute("data-edit-reuniao");}); if(r2) openReuniaoModal(r2); }
+    };
+    var hoje = todayISO();
+    document.getElementById("reuniaoBadge").textContent = ws.reunioes.filter(function(r){ return r.status==="agendada" && r.data<=hoje; }).length;
+  }
+  function openReuniaoOverlay(){
+    document.getElementById("reuniaoWsName").textContent = activeWs().nome;
+    document.getElementById("reuniaoSearch").value = reuniaoSearchTerm;
+    document.getElementById("reuniaoOverlay").style.display = "flex";
+    renderReunioes();
+  }
+  function closeReuniaoOverlay(){ document.getElementById("reuniaoOverlay").style.display = "none"; }
+  document.getElementById("btnOpenReunioes").addEventListener("click", openReuniaoOverlay);
+  document.getElementById("btnCloseReuniao").addEventListener("click", closeReuniaoOverlay);
+  document.getElementById("btnNewReuniao").addEventListener("click", function(){ openReuniaoModal(null); });
+  document.getElementById("reuniaoSearch").addEventListener("input", function(e){ reuniaoSearchTerm = e.target.value; renderReunioes(); });
+  document.addEventListener("keydown", function(e){
+    if(e.key==="Escape" && document.getElementById("reuniaoOverlay").style.display!=="none") closeReuniaoOverlay();
+  });
+
   /* ---------------- COMMAND PALETTE ---------------- */
   var cmdkLayer = document.getElementById("cmdkLayer");
   var cmdkSelIndex = 0; var cmdkItems = [];
@@ -1279,6 +1496,7 @@
       if(!t || "novo lead".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Criar novo lead", run:function(){ closeCmdk(); openLeadModal(null); } });
     }
     if(!t || "novo gasto".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Registrar novo gasto", run:function(){ closeCmdk(); openExpenseModal(); } });
+    if(!t || "nova reuniao reunião marcar".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Marcar nova reunião", run:function(){ closeCmdk(); openReuniaoModal(null); } });
     state.workspaces.forEach(function(w){
       if(!t || w.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Negócios", ic:"◆", label:"Trocar para "+w.nome, run:function(){ state.activeId=w.id; saveState(); applyTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI(); renderAll(); closeCmdk(); } });
     });
@@ -1289,9 +1507,14 @@
         });
       } else {
         activeWs().leads.forEach(function(l){
-          if(l.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Leads", ic:"●", label:l.nome+" — "+STAGE_LABEL[l.stage], run:function(){ closeCmdk(); openLeadModal(l); } });
+          if(l.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Leads", ic:"●", label:l.nome+" — "+STAGE_LABEL[l.stage], run:function(){ closeCmdk(); openLeadViewModal(l); } });
         });
       }
+      activeWs().reunioes.forEach(function(r){
+        if((r.clienteNome||"").toLowerCase().indexOf(t)>-1 || (r.assunto||"").toLowerCase().indexOf(t)>-1){
+          items.push({ group:"Reuniões", ic:"📅", label:r.clienteNome+" — "+fmtDateShort(r.data)+(r.hora?" "+r.hora:""), run:function(){ closeCmdk(); openReuniaoModal(r); } });
+        }
+      });
     }
     return items;
   }
