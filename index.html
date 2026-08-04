@@ -372,6 +372,7 @@
 
     <div class="side-body">
       <button class="cmdk-hint" id="cmdkHintBtn"><span>Comando rápido</span><kbd id="cmdkKeyLabel">Ctrl K</kbd></button>
+      <div class="side-mini-stat" id="sideEstimativaWrap"><div class="l">Estimativa de ganho</div><div class="v tabular" id="sideEstimativa">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Receita do mês</div><div class="v tabular" id="sideReceita">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
@@ -733,6 +734,7 @@
     document.getElementById("secondaryPanelTitle").textContent = isDropship ? "Vendas" : "Domínios";
     document.getElementById("sideStat3Label").textContent = isDropship ? "Ticket médio" : "Taxa de conversão";
     document.getElementById("btnOpenPipeline").style.display = isDropship ? "none":"flex";
+    document.getElementById("sideEstimativaWrap").style.display = isDropship ? "none":"block";
     renderTopActions();
   }
 
@@ -758,6 +760,7 @@
     document.getElementById("tickerTrack").innerHTML = html + html;
   }
   function renderSideStats(k){
+    if(typeof k.estimativa === "number") document.getElementById("sideEstimativa").textContent = fmtBRL(k.estimativa);
     document.getElementById("sideReceita").textContent = fmtBRL(k.receita);
     document.getElementById("sideLucro").textContent = fmtBRL(k.lucro);
     document.getElementById("sideConversao").textContent = k.isTicketMedio ? fmtBRL(k.conversao) : k.conversao.toFixed(0)+"%";
@@ -780,7 +783,8 @@
     var totalLeads = ws.leads.length;
     var totalFechados = ws.leads.filter(function(l){ return l.stage==="fechado"; }).length;
     var conversao = totalLeads ? (totalFechados/totalLeads*100) : 0;
-    return { receita:receita, gastos:gastos, lucro:receita-gastos, fechados:fechadosMonth.length, conversao:conversao, isTicketMedio:false };
+    var estimativa = ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+Number(l.valor||0); },0);
+    return { receita:receita, gastos:gastos, lucro:receita-gastos, fechados:fechadosMonth.length, conversao:conversao, isTicketMedio:false, estimativa:estimativa };
   }
 
   /* ---------------- CHARTS ---------------- */
