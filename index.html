@@ -152,6 +152,10 @@
   .chip.soon{ background:var(--warning-soft); color:var(--warning); }
   .chip.late{ background:var(--danger-soft); color:var(--danger); }
   .chip.none{ background:var(--surface-3); color:var(--text-faint); }
+  .chip.testando{ background:var(--warning-soft); color:var(--warning); }
+  .chip.escalando{ background:var(--success-soft); color:var(--success); }
+  .chip.pausado{ background:var(--surface-3); color:var(--text-faint); }
+  .ws-type-ic{ display:inline-block; width:16px; opacity:.75; }
   .icon-btn{ border:1px solid var(--border); background:var(--surface-2); width:20px;height:20px; border-radius:5px; display:flex;align-items:center;justify-content:center; font-size:10px; color:var(--text-muted); }
   .icon-btn:hover{ color:var(--text); border-color:var(--border-strong); }
   .row-actions{ display:flex; gap:4px; opacity:0; } tbody tr:hover .row-actions{ opacity:1; }
@@ -302,7 +306,7 @@
       <button class="cmdk-hint" id="cmdkHintBtn"><span>Comando rápido</span><kbd id="cmdkKeyLabel">Ctrl K</kbd></button>
       <div class="side-mini-stat"><div class="l">Receita do mês</div><div class="v tabular" id="sideReceita">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
-      <div class="side-mini-stat"><div class="l">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
+      <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
     </div>
 
@@ -312,36 +316,50 @@
   <div class="main">
     <header class="topbar">
       <div><h1 id="viewTitle">Terminal</h1><div class="crumbs" id="viewCrumb">CRM, domínios, financeiro e configurações — tudo em uma tela</div></div>
-      <div class="top-actions">
-        <button class="btn primary sm" id="btnNewLeadTop">+ Lead</button>
-        <button class="btn sm" id="btnNewExpenseTop">+ Gasto</button>
-      </div>
+      <div class="top-actions" id="topActions"></div>
     </header>
     <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
 
     <div class="board">
       <div class="panel z-crm">
-        <div class="crm-toolbar">
-          <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button></div>
-          <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
-            <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
+        <div id="primaryAgencia">
+          <div class="crm-toolbar">
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button></div>
+            <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
+              <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
+            </div>
+            <input id="crmSearch" placeholder="Buscar..." style="border:1px solid var(--border);background:var(--surface-2);padding:5px 8px;font-size:10.5px;width:110px;color:var(--text);margin-left:auto;border-radius:6px;">
           </div>
-          <input id="crmSearch" placeholder="Buscar..." style="border:1px solid var(--border);background:var(--surface-2);padding:5px 8px;font-size:10.5px;width:110px;color:var(--text);margin-left:auto;border-radius:6px;">
+          <div class="list-wrap" id="crmList" style="display:flex">
+            <div class="panel-body"><table><thead><tr><th></th><th>Lead</th><th>Cidade</th><th>Etapa</th><th class="num">Valor</th><th></th></tr></thead><tbody id="crmListRows"></tbody></table></div>
+          </div>
+          <div class="radar-wrap" id="crmRadar" style="display:none">
+            <div class="chart-wrap"><canvas id="radarChart"></canvas><div class="empty-mini" id="radarEmpty" style="display:none">Sem leads em aberto pra mostrar no radar.</div></div>
+            <div class="radar-legend"><div><span class="dot" style="background:var(--quente)"></span>Quente</div><div><span class="dot" style="background:var(--morno)"></span>Morno</div><div><span class="dot" style="background:var(--frio)"></span>Frio</div></div>
+          </div>
         </div>
-        <div class="list-wrap" id="crmList" style="display:flex">
-          <div class="panel-body"><table><thead><tr><th></th><th>Lead</th><th>Cidade</th><th>Etapa</th><th class="num">Valor</th><th></th></tr></thead><tbody id="crmListRows"></tbody></table></div>
-        </div>
-        <div class="radar-wrap" id="crmRadar" style="display:none">
-          <div class="chart-wrap"><canvas id="radarChart"></canvas><div class="empty-mini" id="radarEmpty" style="display:none">Sem leads em aberto pra mostrar no radar.</div></div>
-          <div class="radar-legend"><div><span class="dot" style="background:var(--quente)"></span>Quente</div><div><span class="dot" style="background:var(--morno)"></span>Morno</div><div><span class="dot" style="background:var(--frio)"></span>Frio</div></div>
+        <div id="primaryDropship" style="display:none">
+          <div class="crm-toolbar">
+            <div class="crm-tabs"><span style="padding:5px 10px;font-size:10.5px;font-weight:800;color:var(--text-muted);">Catálogo de produtos</span></div>
+            <input id="produtoSearch" placeholder="Buscar produto..." style="border:1px solid var(--border);background:var(--surface-2);padding:5px 8px;font-size:10.5px;width:130px;color:var(--text);margin-left:auto;border-radius:6px;">
+          </div>
+          <div class="list-wrap" style="display:flex">
+            <div class="panel-body"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th class="num">Custo</th><th class="num">Venda</th><th class="num">Margem</th><th>Status</th><th></th></tr></thead><tbody id="produtoRows"></tbody></table>
+              <div class="empty-state" id="produtoEmpty" style="display:none"><div class="big">▤</div><p>Nenhum produto cadastrado ainda. Clique em "+ Produto" pra começar o catálogo.</p></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="panel z-domains">
-        <div class="panel-head"><h2>Domínios</h2></div>
-        <div class="panel-body">
+        <div class="panel-head"><h2 id="secondaryPanelTitle">Domínios</h2></div>
+        <div class="panel-body" id="secondaryAgencia">
           <table><thead><tr><th>Cliente</th><th>Site</th><th>Vence</th><th>Pago</th><th>Status</th></tr></thead><tbody id="domainRows"></tbody></table>
           <div class="empty-state" id="domainEmpty" style="display:none"><div class="big">▣</div><p>Nenhum domínio cadastrado. Abra um lead e marque "domínio contratado".</p></div>
+        </div>
+        <div class="panel-body" id="secondaryDropship" style="display:none">
+          <table><thead><tr><th>Produto</th><th class="num">Qtd</th><th class="num">Venda</th><th class="num">Lucro</th><th>Data</th><th></th></tr></thead><tbody id="vendaRows"></tbody></table>
+          <div class="empty-state" id="vendaEmpty" style="display:none"><div class="big">🛒</div><p>Nenhuma venda registrada ainda.</p></div>
         </div>
       </div>
 
@@ -428,8 +446,15 @@
 (function(){
   "use strict";
   var STORAGE_KEY = "painel-weslei-v3";
-  var EXPENSE_CATS = ["Tráfego pago (Ads)", "Ferramentas de IA", "Domínio / Hospedagem", "Outros"];
-  var CAT_COLORS = { "Tráfego pago (Ads)": "#ff5470", "Ferramentas de IA": "#4d9eff", "Domínio / Hospedagem": "#ffb648", "Outros": "#7a86a3" };
+  var EXPENSE_CATS_AGENCIA = ["Tráfego pago (Ads)", "Ferramentas de IA", "Domínio / Hospedagem", "Outros"];
+  var CAT_COLORS_AGENCIA = { "Tráfego pago (Ads)": "#ff5470", "Ferramentas de IA": "#4d9eff", "Domínio / Hospedagem": "#ffb648", "Outros": "#7a86a3" };
+  var EXPENSE_CATS_DROPSHIP = ["Ads", "Fornecedor / Produto", "Plataforma / Taxas", "Frete", "Outros"];
+  var CAT_COLORS_DROPSHIP = { "Ads": "#ff5470", "Fornecedor / Produto": "#ffb648", "Plataforma / Taxas": "#4d9eff", "Frete": "#8a5cf0", "Outros": "#7a86a3" };
+  function expenseCats(){ return activeWs().tipo==="dropshipping" ? EXPENSE_CATS_DROPSHIP : EXPENSE_CATS_AGENCIA; }
+  function catColors(){ return activeWs().tipo==="dropshipping" ? CAT_COLORS_DROPSHIP : CAT_COLORS_AGENCIA; }
+  var PRODUTO_STATUS = ["testando","escalando","pausado"];
+  var PRODUTO_STATUS_LABEL = { testando:"Testando", escalando:"Escalando", pausado:"Pausado" };
+  var PRODUTO_STATUS_COLOR = { testando:"#ffb648", escalando:"#2fd480", pausado:"#7a86a3" };
   var STAGES = ["novo","contato","previa","negociando","fechado","perdido"];
   var STAGE_LABEL = { novo:"Novo", contato:"Contato", previa:"Prévia", negociando:"Negociando", fechado:"Fechado", perdido:"Perdido" };
   var TEMP_LABEL = { quente:"🔥 Quente", morno:"🌤 Morno", frio:"❄ Frio" };
@@ -459,7 +484,7 @@
   }
   var DOMAIN_STATUS_LABEL = { ok:"Em dia", soon:"Vence em breve", late:"Vencido", none:"—" };
 
-  function newWorkspace(nome){ return { id: uid(), nome: nome || "Novo negócio", hue: 354, leads: [], expenses: [], activityLog: [] }; }
+  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 354, leads: [], expenses: [], produtos: [], vendas: [], activityLog: [] }; }
   function pushLog(ws, texto){
     ws.activityLog = ws.activityLog || [];
     ws.activityLog.unshift({ id: uid(), texto: texto, data: new Date().toISOString() });
@@ -480,6 +505,16 @@
     parsed.themeId = parsed.themeId || "meia-noite";
     parsed.workspaces.forEach(function(ws){
       ws.activityLog = ws.activityLog || [];
+      ws.tipo = ws.tipo || "agencia";
+      ws.leads = ws.leads || [];
+      ws.expenses = ws.expenses || [];
+      ws.produtos = ws.produtos || [];
+      ws.vendas = ws.vendas || [];
+      ws.produtos.forEach(function(p){
+        if(!p.status) p.status = "testando";
+        if(typeof p.fornecedor !== "string") p.fornecedor = "";
+        if(typeof p.link !== "string") p.link = "";
+      });
       (ws.leads||[]).forEach(function(l){
         if(!l.temperatura) l.temperatura = "morno";
         if(typeof l.site !== "string") l.site = "";
@@ -542,30 +577,83 @@
   }
 
   /* ---------------- WORKSPACE UI ---------------- */
+  var WORKSPACE_TYPE_LABEL = { agencia:"Agência de sites", dropshipping:"Dropshipping" };
+  var WORKSPACE_TYPE_ICON = { agencia:"◆", dropshipping:"🛒" };
   function renderWorkspacePicker(){
     document.getElementById("wsName").textContent = activeWs().nome;
     var menu = document.getElementById("wsMenu");
-    menu.innerHTML = state.workspaces.map(function(w){ return '<button data-ws="'+w.id+'" class="'+(w.id===state.activeId?"active":"")+'">'+escapeHtml(w.nome)+(w.id===state.activeId?" ✓":"")+'</button>'; }).join("") + '<button class="new" id="wsCreate">+ Novo negócio</button>';
+    menu.innerHTML = state.workspaces.map(function(w){
+      return '<button data-ws="'+w.id+'" class="'+(w.id===state.activeId?"active":"")+'"><span class="ws-type-ic">'+WORKSPACE_TYPE_ICON[w.tipo]+'</span>'+escapeHtml(w.nome)+(w.id===state.activeId?" ✓":"")+'</button>';
+    }).join("") + '<button class="new" id="wsCreate">+ Novo negócio</button>';
   }
   document.getElementById("wsBtn").addEventListener("click", function(){ document.getElementById("wsMenu").classList.toggle("open"); });
   document.addEventListener("click", function(e){ if(!e.target.closest(".workspace-picker")) document.getElementById("wsMenu").classList.remove("open"); });
   document.getElementById("wsMenu").addEventListener("click", function(e){
-    var wsId = e.target.getAttribute("data-ws");
-    if(wsId){ state.activeId = wsId; saveState(); applyTheme(); renderWorkspacePicker(); renderAll(); document.getElementById("wsMenu").classList.remove("open"); }
+    var wsId = e.target.closest("button[data-ws]") ? e.target.closest("button[data-ws]").getAttribute("data-ws") : null;
+    if(wsId){ state.activeId = wsId; saveState(); applyTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI(); renderAll(); document.getElementById("wsMenu").classList.remove("open"); }
     if(e.target.id === "wsCreate"){
-      var nome = prompt("Nome do novo negócio:");
-      if(nome && nome.trim()){ var w = newWorkspace(nome.trim()); state.workspaces.push(w); state.activeId = w.id; saveState(); applyTheme(); renderWorkspacePicker(); renderAll(); }
       document.getElementById("wsMenu").classList.remove("open");
+      openNewWorkspaceModal();
     }
   });
+  function openNewWorkspaceModal(){
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal">'+
+      '<h3>Novo negócio</h3>'+
+      '<div class="field"><label>Nome do negócio</label><input id="nw_nome" placeholder="Ex: Loja Fulano Import"></div>'+
+      '<div class="field"><label>Tipo de negócio</label><div class="temp-radio" id="nwTipoGroup">'+
+        '<label class="checked" data-tipo-opt="agencia"><input type="radio" name="nw_tipo" value="agencia" checked><span>◆ Agência de sites</span></label>'+
+        '<label data-tipo-opt="dropshipping"><input type="radio" name="nw_tipo" value="dropshipping"><span>🛒 Dropshipping</span></label>'+
+      '</div></div>'+
+      '<div class="modal-actions"><button class="btn" id="nw_cancel">Cancelar</button><button class="btn primary" id="nw_save">Criar</button></div>'+
+      '</div></div>';
+    document.getElementById("nw_cancel").addEventListener("click", closeModal);
+    document.querySelectorAll('#nwTipoGroup input[name="nw_tipo"]').forEach(function(r){
+      r.addEventListener("change", function(){ document.querySelectorAll('#nwTipoGroup label').forEach(function(lb){ lb.classList.toggle("checked", lb.getAttribute("data-tipo-opt")===r.value); }); });
+    });
+    document.getElementById("nw_save").addEventListener("click", function(){
+      var nome = document.getElementById("nw_nome").value.trim();
+      if(!nome){ document.getElementById("nw_nome").focus(); return; }
+      var tipo = modalLayer.querySelector('input[name="nw_tipo"]:checked').value;
+      var w = newWorkspace(nome, tipo);
+      state.workspaces.push(w); state.activeId = w.id;
+      saveState(); applyTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI(); renderAll(); closeModal();
+    });
+  }
 
-  document.getElementById("btnNewLeadTop").addEventListener("click", function(){ openLeadModal(null); });
-  document.getElementById("btnNewExpenseTop").addEventListener("click", openExpenseModal);
+  function renderTopActions(){
+    var el = document.getElementById("topActions");
+    if(activeWs().tipo==="dropshipping"){
+      el.innerHTML = '<button class="btn primary sm" id="btnNewProdutoTop">+ Produto</button><button class="btn sm" id="btnNewVendaTop">+ Venda</button><button class="btn sm" id="btnNewExpenseTop">+ Gasto</button>';
+      document.getElementById("btnNewProdutoTop").addEventListener("click", function(){ openProdutoModal(null); });
+      document.getElementById("btnNewVendaTop").addEventListener("click", function(){ openVendaModal(); });
+    } else {
+      el.innerHTML = '<button class="btn primary sm" id="btnNewLeadTop">+ Lead</button><button class="btn sm" id="btnNewExpenseTop">+ Gasto</button>';
+      document.getElementById("btnNewLeadTop").addEventListener("click", function(){ openLeadModal(null); });
+    }
+    document.getElementById("btnNewExpenseTop").addEventListener("click", openExpenseModal);
+  }
+
+  function applyWorkspaceTypeUI(){
+    var ws = activeWs();
+    var isDropship = ws.tipo==="dropshipping";
+    document.getElementById("viewCrumb").textContent = isDropship
+      ? "Produtos, vendas, financeiro e configurações — tudo em uma tela"
+      : "CRM, domínios, financeiro e configurações — tudo em uma tela";
+    document.getElementById("primaryAgencia").style.display = isDropship ? "none":"block";
+    document.getElementById("primaryDropship").style.display = isDropship ? "block":"none";
+    document.getElementById("secondaryAgencia").style.display = isDropship ? "none":"block";
+    document.getElementById("secondaryDropship").style.display = isDropship ? "block":"none";
+    document.getElementById("secondaryPanelTitle").textContent = isDropship ? "Vendas" : "Domínios";
+    document.getElementById("sideStat3Label").textContent = isDropship ? "Ticket médio" : "Taxa de conversão";
+    document.getElementById("btnOpenPipeline").style.display = isDropship ? "none":"flex";
+    renderTopActions();
+  }
 
   /* ---------------- TICKER + SIDE STATS ---------------- */
   function renderTicker(){
     var ws = activeWs();
-    var alerts = ws.leads.filter(function(l){ return l.dominio && l.dominio.contratado; }).map(function(l){
+    var alerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.dominio && l.dominio.contratado; }).map(function(l){
       var d = daysUntil(l.dominio.vencimento);
       if(d===null) return null;
       if(d<0) return { texto: "Domínio de "+l.nome+" venceu há "+Math.abs(d)+" dia(s)", cls:"alert" };
@@ -581,20 +669,27 @@
   function renderSideStats(k){
     document.getElementById("sideReceita").textContent = fmtBRL(k.receita);
     document.getElementById("sideLucro").textContent = fmtBRL(k.lucro);
-    document.getElementById("sideConversao").textContent = k.conversao.toFixed(0)+"%";
+    document.getElementById("sideConversao").textContent = k.isTicketMedio ? fmtBRL(k.conversao) : k.conversao.toFixed(0)+"%";
   }
 
   /* ---------------- KPIs ---------------- */
   function inThisMonth(iso){ if(!iso) return false; var d=new Date(iso+"T00:00:00"), now=new Date(); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth(); }
   function computeKpis(){
     var ws = activeWs();
+    var gastos = ws.expenses.filter(function(e){ return inThisMonth(e.data); }).reduce(function(s,e){ return s+Number(e.valor||0); },0);
+    if(ws.tipo==="dropshipping"){
+      var vendasMonth = ws.vendas.filter(function(v){ return inThisMonth(v.data); });
+      var receitaD = vendasMonth.reduce(function(s,v){ return s+Number(v.valorVenda||0); },0);
+      var cogsD = vendasMonth.reduce(function(s,v){ return s+Number(v.custoTotal||0); },0);
+      var ticketMedio = vendasMonth.length ? receitaD/vendasMonth.length : 0;
+      return { receita:receitaD, gastos:gastos+cogsD, lucro:receitaD-cogsD-gastos, fechados:vendasMonth.length, conversao:ticketMedio, isTicketMedio:true };
+    }
     var fechadosMonth = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
     var receita = fechadosMonth.reduce(function(s,l){ return s+Number(l.valor||0); },0);
-    var gastos = ws.expenses.filter(function(e){ return inThisMonth(e.data); }).reduce(function(s,e){ return s+Number(e.valor||0); },0);
     var totalLeads = ws.leads.length;
     var totalFechados = ws.leads.filter(function(l){ return l.stage==="fechado"; }).length;
     var conversao = totalLeads ? (totalFechados/totalLeads*100) : 0;
-    return { receita:receita, gastos:gastos, lucro:receita-gastos, fechados:fechadosMonth.length, conversao:conversao };
+    return { receita:receita, gastos:gastos, lucro:receita-gastos, fechados:fechadosMonth.length, conversao:conversao, isTicketMedio:false };
   }
 
   /* ---------------- CHARTS ---------------- */
@@ -602,8 +697,15 @@
   function last6Months(){ var arr=[], now=new Date(); for(var i=5;i>=0;i--){ var d=new Date(now.getFullYear(), now.getMonth()-i, 1); arr.push({y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString("pt-BR",{month:"short"}).replace(".","")}); } return arr; }
   function monthlySeries(ws){
     var months = last6Months();
-    var receitaData = months.map(function(mo){ return ws.leads.filter(function(l){ var dt=l.dataFechamento||l.data; if(l.stage!=="fechado"||!dt) return false; var d=new Date(dt+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,l){return s+Number(l.valor||0);},0); });
-    var gastosData = months.map(function(mo){ return ws.expenses.filter(function(e){ if(!e.data) return false; var d=new Date(e.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,e){return s+Number(e.valor||0);},0); });
+    var receitaData = ws.tipo==="dropshipping"
+      ? months.map(function(mo){ return ws.vendas.filter(function(v){ if(!v.data) return false; var d=new Date(v.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,v){return s+Number(v.valorVenda||0);},0); })
+      : months.map(function(mo){ return ws.leads.filter(function(l){ var dt=l.dataFechamento||l.data; if(l.stage!=="fechado"||!dt) return false; var d=new Date(dt+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,l){return s+Number(l.valor||0);},0); });
+    var gastosData = months.map(function(mo){
+      var expTotal = ws.expenses.filter(function(e){ if(!e.data) return false; var d=new Date(e.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,e){return s+Number(e.valor||0);},0);
+      if(ws.tipo!=="dropshipping") return expTotal;
+      var cogsTotal = ws.vendas.filter(function(v){ if(!v.data) return false; var d=new Date(v.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,v){return s+Number(v.custoTotal||0);},0);
+      return expTotal+cogsTotal;
+    });
     return { months:months, receitaData:receitaData, gastosData:gastosData };
   }
   function gradientFill(colorCss){
@@ -637,15 +739,16 @@
     var el = document.getElementById("donutEmpty");
     if(!safeChart()){ el.style.display="flex"; el.textContent="—"; document.getElementById("donutLegend").innerHTML=""; return; }
     var ws = activeWs();
-    var totals = EXPENSE_CATS.map(function(c){ return ws.expenses.filter(function(e){return e.categoria===c;}).reduce(function(s,e){return s+Number(e.valor||0);},0); });
+    var cats = expenseCats(); var colors = catColors();
+    var totals = cats.map(function(c){ return ws.expenses.filter(function(e){return e.categoria===c;}).reduce(function(s,e){return s+Number(e.valor||0);},0); });
     var total = totals.reduce(function(a,b){return a+b;},0);
     el.style.display = total>0?"none":"flex";
     var donutCanvasEl = document.getElementById("donutChart");
     var ctx = donutCanvasEl.getContext("2d");
     if(donutChart) donutChart.destroy();
     var donutStale = Chart.getChart(donutCanvasEl); if(donutStale) donutStale.destroy();
-    donutChart = new Chart(ctx, { type:"doughnut", data:{ labels:EXPENSE_CATS, datasets:[{ data:totals, backgroundColor:EXPENSE_CATS.map(function(c){return CAT_COLORS[c];}), borderWidth:0 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:"66%", plugins:{legend:{display:false}} } });
-    document.getElementById("donutLegend").innerHTML = EXPENSE_CATS.map(function(c,i){ return '<div><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+CAT_COLORS[c]+';margin-right:4px;"></span>'+fmtBRL(totals[i])+'</div>'; }).join("");
+    donutChart = new Chart(ctx, { type:"doughnut", data:{ labels:cats, datasets:[{ data:totals, backgroundColor:cats.map(function(c){return colors[c];}), borderWidth:0 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:"66%", plugins:{legend:{display:false}} } });
+    document.getElementById("donutLegend").innerHTML = cats.map(function(c,i){ return '<div><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+colors[c]+';margin-right:4px;"></span>'+fmtBRL(totals[i])+'</div>'; }).join("");
   }
   function renderRadar(){
     var el = document.getElementById("radarEmpty");
@@ -878,7 +981,7 @@
     if(state.workspaces.length<=1){ alert("Você precisa de pelo menos um negócio no painel."); return; }
     if(confirm("Excluir \""+activeWs().nome+"\" e todos os dados dele? Essa ação não pode ser desfeita.")){
       state.workspaces = state.workspaces.filter(function(w){return w.id!==state.activeId;});
-      state.activeId = state.workspaces[0].id; saveState(); applyTheme(); renderWorkspacePicker(); renderAll();
+      state.activeId = state.workspaces[0].id; saveState(); applyTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI(); renderAll();
     }
   });
 
@@ -888,6 +991,8 @@
     renderSideStats(k);
     renderCrm();
     renderDominios();
+    renderProdutos();
+    renderVendas();
     renderFinanceiro();
     renderConfig();
     try{ renderTrendChart(); }catch(e){ console.error("trend falhou", e); }
@@ -989,10 +1094,11 @@
   }
   function openExpenseModal(){
     var ws = activeWs();
-    var exp = { id:uid(), categoria:EXPENSE_CATS[0], descricao:"", valor:"", data:todayISO() };
+    var cats = expenseCats();
+    var exp = { id:uid(), categoria:cats[0], descricao:"", valor:"", data:todayISO() };
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal"><h3>Novo gasto</h3>'+
-      '<div class="field"><label>Categoria</label><select id="e_cat">'+EXPENSE_CATS.map(function(c){return '<option>'+c+'</option>';}).join("")+'</select></div>'+
+      '<div class="field"><label>Categoria</label><select id="e_cat">'+cats.map(function(c){return '<option>'+c+'</option>';}).join("")+'</select></div>'+
       '<div class="field"><label>Descrição</label><input id="e_desc" placeholder="Ex: Campanha WhatsApp — 1 dia"></div>'+
       '<div class="field-row"><div class="field"><label>Valor (R$)</label><input id="e_valor" type="number" step="0.01"></div><div class="field"><label>Data</label><input id="e_data" type="date" value="'+exp.data+'"></div></div>'+
       '<div class="modal-actions"><button class="btn" id="e_cancel">Cancelar</button><button class="btn primary" id="e_save">Salvar</button></div></div></div>';
@@ -1003,6 +1109,136 @@
       exp.categoria = document.getElementById("e_cat").value; exp.descricao = document.getElementById("e_desc").value.trim(); exp.valor = valor; exp.data = document.getElementById("e_data").value || todayISO();
       ws.expenses.push(exp); pushLog(ws, "Gasto: "+fmtBRL(valor)+" em "+exp.categoria); saveState(); closeModal(); renderAll();
     });
+  }
+
+  /* ---------------- DROPSHIPPING: PRODUTOS ---------------- */
+  var produtoSearchTerm = "";
+  function openProdutoModal(produto){
+    var editing = !!produto;
+    produto = produto || { id:uid(), nome:"", fornecedor:"", link:"", custo:"", precoVenda:"", status:"testando" };
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal">'+
+      '<h3>'+(editing?"Editar produto":"Novo produto")+'</h3>'+
+      '<div class="field"><label>Nome do produto</label><input id="p_nome" value="'+escapeHtml(produto.nome)+'" placeholder="Ex: Fone Bluetooth X200"></div>'+
+      '<div class="field"><label>Fornecedor</label><input id="p_fornecedor" value="'+escapeHtml(produto.fornecedor)+'" placeholder="Ex: AliExpress — loja tal"></div>'+
+      '<div class="field"><label>Link do fornecedor</label><input id="p_link" value="'+escapeHtml(produto.link)+'" placeholder="linkdoproduto.com"></div>'+
+      '<div class="field-row"><div class="field"><label>Custo por unidade (R$)</label><input id="p_custo" type="number" step="0.01" value="'+produto.custo+'"></div><div class="field"><label>Preço de venda (R$)</label><input id="p_venda" type="number" step="0.01" value="'+produto.precoVenda+'"></div></div>'+
+      '<div class="field"><label>Status</label><div class="temp-radio" id="pStatusGroup">'+
+        PRODUTO_STATUS.map(function(s){ return '<label class="'+(produto.status===s?"checked":"")+'" data-status-opt="'+s+'"><input type="radio" name="p_status" value="'+s+'"'+(produto.status===s?" checked":"")+'><span>'+PRODUTO_STATUS_LABEL[s]+'</span></label>'; }).join("")+
+      '</div></div>'+
+      '<div class="modal-actions">'+(editing?'<button class="danger-link" id="p_delete">Excluir</button>':'')+'<button class="btn" id="p_cancel">Cancelar</button><button class="btn primary" id="p_save">Salvar</button></div>'+
+      '</div></div>';
+    document.getElementById("p_cancel").addEventListener("click", closeModal);
+    document.querySelectorAll('#pStatusGroup input[name="p_status"]').forEach(function(r){
+      r.addEventListener("change", function(){ document.querySelectorAll('#pStatusGroup label').forEach(function(lb){ lb.classList.toggle("checked", lb.getAttribute("data-status-opt")===r.value); }); });
+    });
+    if(editing){
+      document.getElementById("p_delete").addEventListener("click", function(){
+        if(confirm("Excluir este produto? Vendas já registradas continuam no histórico.")){
+          var ws = activeWs(); ws.produtos = ws.produtos.filter(function(x){return x.id!==produto.id;});
+          pushLog(ws, produto.nome+" removido do catálogo"); saveState(); closeModal(); renderAll();
+        }
+      });
+    }
+    document.getElementById("p_save").addEventListener("click", function(){
+      var nome = document.getElementById("p_nome").value.trim();
+      if(!nome){ document.getElementById("p_nome").focus(); return; }
+      var statusInput = modalLayer.querySelector('input[name="p_status"]:checked');
+      var updated = {
+        id: produto.id, nome:nome,
+        fornecedor: document.getElementById("p_fornecedor").value.trim(),
+        link: document.getElementById("p_link").value.trim(),
+        custo: parseFloat(document.getElementById("p_custo").value)||0,
+        precoVenda: parseFloat(document.getElementById("p_venda").value)||0,
+        status: statusInput ? statusInput.value : "testando"
+      };
+      var ws = activeWs();
+      var idx = ws.produtos.findIndex(function(x){return x.id===produto.id;});
+      var isNew = idx===-1;
+      if(!isNew) ws.produtos[idx]=updated; else ws.produtos.push(updated);
+      pushLog(ws, isNew ? ("Novo produto: "+nome) : (nome+" atualizado"));
+      saveState(); closeModal(); renderAll();
+    });
+  }
+  function produtoMargem(p){ if(!p.precoVenda) return 0; return ((p.precoVenda-p.custo)/p.precoVenda)*100; }
+  function renderProdutos(){
+    var ws = activeWs();
+    var t = produtoSearchTerm.toLowerCase();
+    var produtos = ws.produtos.filter(function(p){ return !t || p.nome.toLowerCase().indexOf(t)>-1; });
+    document.getElementById("produtoEmpty").style.display = ws.produtos.length ? "none":"flex";
+    document.getElementById("produtoRows").innerHTML = produtos.map(function(p){
+      var margem = produtoMargem(p);
+      var margemColor = margem>=30 ? "var(--success)" : margem>=10 ? "var(--warning)" : "var(--danger)";
+      return '<tr><td class="name-cell"><div class="primary">'+escapeHtml(p.nome)+'</div></td>'+
+        '<td>'+(p.link ? '<a class="site-link" href="'+escapeHtml(safeUrl(p.link))+'" target="_blank" rel="noopener">'+escapeHtml(p.fornecedor||p.link)+'</a>' : escapeHtml(p.fornecedor||"—"))+'</td>'+
+        '<td class="num tabular">'+fmtBRL(p.custo)+'</td>'+
+        '<td class="num tabular">'+fmtBRL(p.precoVenda)+'</td>'+
+        '<td class="num tabular" style="color:'+margemColor+';font-weight:700;">'+margem.toFixed(0)+'%</td>'+
+        '<td><span class="chip '+p.status+'">'+PRODUTO_STATUS_LABEL[p.status]+'</span></td>'+
+        '<td><div class="row-actions"><button class="icon-btn" data-edit-produto="'+p.id+'">✎</button></div></td></tr>';
+    }).join("");
+    document.getElementById("produtoRows").onclick = function(e){
+      var id = e.target.closest("[data-edit-produto]") ? e.target.closest("[data-edit-produto]").getAttribute("data-edit-produto") : null;
+      if(id){ var p = ws.produtos.find(function(x){return x.id===id;}); if(p) openProdutoModal(p); }
+    };
+  }
+  document.getElementById("produtoSearch").addEventListener("input", function(e){ produtoSearchTerm = e.target.value; renderProdutos(); });
+
+  /* ---------------- DROPSHIPPING: VENDAS ---------------- */
+  function openVendaModal(){
+    var ws = activeWs();
+    if(!ws.produtos.length){ alert("Cadastre um produto no catálogo antes de registrar uma venda."); return; }
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal">'+
+      '<h3>Nova venda</h3>'+
+      '<div class="field"><label>Produto</label><select id="v_produto">'+ws.produtos.map(function(p){return '<option value="'+p.id+'">'+escapeHtml(p.nome)+'</option>';}).join("")+'</select></div>'+
+      '<div class="field-row"><div class="field"><label>Quantidade</label><input id="v_qtd" type="number" step="1" min="1" value="1"></div><div class="field"><label>Data</label><input id="v_data" type="date" value="'+todayISO()+'"></div></div>'+
+      '<div class="field-row"><div class="field"><label>Valor total da venda (R$)</label><input id="v_valor" type="number" step="0.01"></div><div class="field"><label>Custo total (R$)</label><input id="v_custo" type="number" step="0.01"></div></div>'+
+      '<div class="modal-actions"><button class="btn" id="v_cancel">Cancelar</button><button class="btn primary" id="v_save">Salvar</button></div></div></div>';
+    function preencherCustoSugerido(){
+      var produto = ws.produtos.find(function(p){return p.id===document.getElementById("v_produto").value;});
+      var qtd = parseInt(document.getElementById("v_qtd").value,10)||1;
+      if(produto){
+        document.getElementById("v_custo").value = (produto.custo*qtd).toFixed(2);
+        if(!document.getElementById("v_valor").value) document.getElementById("v_valor").value = (produto.precoVenda*qtd).toFixed(2);
+      }
+    }
+    preencherCustoSugerido();
+    document.getElementById("v_produto").addEventListener("change", preencherCustoSugerido);
+    document.getElementById("v_qtd").addEventListener("input", preencherCustoSugerido);
+    document.getElementById("v_cancel").addEventListener("click", closeModal);
+    document.getElementById("v_save").addEventListener("click", function(){
+      var valor = parseFloat(document.getElementById("v_valor").value)||0;
+      if(valor<=0){ document.getElementById("v_valor").focus(); return; }
+      var produto = ws.produtos.find(function(p){return p.id===document.getElementById("v_produto").value;});
+      var custo = parseFloat(document.getElementById("v_custo").value)||0;
+      var venda = {
+        id: uid(), produtoId: produto.id, produtoNome: produto.nome,
+        quantidade: parseInt(document.getElementById("v_qtd").value,10)||1,
+        valorVenda: valor, custoTotal: custo, lucro: valor-custo,
+        data: document.getElementById("v_data").value || todayISO()
+      };
+      ws.vendas.push(venda);
+      pushLog(ws, "Venda: "+fmtBRL(valor)+" — "+produto.nome);
+      saveState(); closeModal(); renderAll();
+    });
+  }
+  function renderVendas(){
+    var ws = activeWs();
+    var vendas = ws.vendas.slice().sort(function(a,b){ return (b.data||"").localeCompare(a.data||""); });
+    document.getElementById("vendaEmpty").style.display = vendas.length ? "none":"flex";
+    document.getElementById("vendaRows").innerHTML = vendas.map(function(v){
+      return '<tr><td class="name-cell"><div class="primary">'+escapeHtml(v.produtoNome)+'</div></td>'+
+        '<td class="num tabular">'+v.quantidade+'</td>'+
+        '<td class="num tabular">'+fmtBRL(v.valorVenda)+'</td>'+
+        '<td class="num tabular" style="color:'+(v.lucro>=0?"var(--success)":"var(--danger)")+';font-weight:700;">'+fmtBRL(v.lucro)+'</td>'+
+        '<td class="tabular">'+fmtDateShort(v.data)+'</td>'+
+        '<td><div class="row-actions"><button class="icon-btn" data-del-venda="'+v.id+'">✕</button></div></td></tr>';
+    }).join("");
+    document.getElementById("vendaRows").onclick = function(e){
+      var id = e.target.getAttribute("data-del-venda");
+      if(id){ if(confirm("Excluir esta venda?")){ ws.vendas = ws.vendas.filter(function(x){return x.id!==id;}); saveState(); renderAll(); } }
+    };
   }
 
   /* ---------------- COMMAND PALETTE ---------------- */
@@ -1035,15 +1271,27 @@
   function buildCmdkIndex(term){
     var t = term.toLowerCase();
     var items = [];
-    if(!t || "novo lead".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Criar novo lead", run:function(){ closeCmdk(); openLeadModal(null); } });
+    var isDropship = activeWs().tipo==="dropshipping";
+    if(isDropship){
+      if(!t || "novo produto".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Criar novo produto", run:function(){ closeCmdk(); openProdutoModal(null); } });
+      if(!t || "nova venda".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Registrar nova venda", run:function(){ closeCmdk(); openVendaModal(); } });
+    } else {
+      if(!t || "novo lead".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Criar novo lead", run:function(){ closeCmdk(); openLeadModal(null); } });
+    }
     if(!t || "novo gasto".indexOf(t)>-1) items.push({ group:"Ações", ic:"+", label:"Registrar novo gasto", run:function(){ closeCmdk(); openExpenseModal(); } });
     state.workspaces.forEach(function(w){
-      if(!t || w.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Negócios", ic:"◆", label:"Trocar para "+w.nome, run:function(){ state.activeId=w.id; saveState(); applyTheme(); renderWorkspacePicker(); renderAll(); closeCmdk(); } });
+      if(!t || w.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Negócios", ic:"◆", label:"Trocar para "+w.nome, run:function(){ state.activeId=w.id; saveState(); applyTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI(); renderAll(); closeCmdk(); } });
     });
     if(t){
-      activeWs().leads.forEach(function(l){
-        if(l.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Leads", ic:"●", label:l.nome+" — "+STAGE_LABEL[l.stage], run:function(){ closeCmdk(); openLeadModal(l); } });
-      });
+      if(isDropship){
+        activeWs().produtos.forEach(function(p){
+          if(p.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Produtos", ic:"●", label:p.nome+" — "+PRODUTO_STATUS_LABEL[p.status], run:function(){ closeCmdk(); openProdutoModal(p); } });
+        });
+      } else {
+        activeWs().leads.forEach(function(l){
+          if(l.nome.toLowerCase().indexOf(t)>-1) items.push({ group:"Leads", ic:"●", label:l.nome+" — "+STAGE_LABEL[l.stage], run:function(){ closeCmdk(); openLeadModal(l); } });
+        });
+      }
     }
     return items;
   }
@@ -1081,7 +1329,7 @@
         if(!parsed || !Array.isArray(parsed.workspaces)) throw new Error("formato inválido");
         if(confirm("Isso substitui todos os dados atuais pelo backup. Continuar?")){
           state = migrateWorkspaces(parsed); if(!state.activeId && state.workspaces[0]) state.activeId = state.workspaces[0].id;
-          saveState(); applyTheme(); renderWorkspacePicker(); renderAll();
+          saveState(); applyTheme(); applyGlobalTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI(); renderAll();
         }
       }catch(err){ alert("Arquivo de backup inválido."); }
       e.target.value = "";
@@ -1090,10 +1338,22 @@
   });
   document.getElementById("btnReport").addEventListener("click", function(){
     var ws = activeWs(); var now = new Date(); var monthLabel = now.toLocaleDateString("pt-BR", { month:"long", year:"numeric" });
-    var monthLeads = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
+    var isDropship = ws.tipo==="dropshipping";
     var monthExpenses = ws.expenses.filter(function(e){ return inThisMonth(e.data); });
-    var receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0);
     var gastos = monthExpenses.reduce(function(s,e){return s+Number(e.valor||0);},0);
+    var receita, corpoTitulo, corpoHtml;
+    if(isDropship){
+      var monthVendas = ws.vendas.filter(function(v){ return inThisMonth(v.data); });
+      receita = monthVendas.reduce(function(s,v){return s+Number(v.valorVenda||0);},0);
+      gastos += monthVendas.reduce(function(s,v){return s+Number(v.custoTotal||0);},0);
+      corpoTitulo = "Vendas do mês ("+monthVendas.length+")";
+      corpoHtml = monthVendas.length ? monthVendas.map(function(v){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(v.produtoNome)+'</td><td style="padding:6px 4px;">'+v.quantidade+'x</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(v.valorVenda)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhuma venda neste mês.</td></tr>';
+    } else {
+      var monthLeads = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
+      receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0);
+      corpoTitulo = "Leads fechados ("+monthLeads.length+")";
+      corpoHtml = monthLeads.length ? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhum lead fechado neste mês.</td></tr>';
+    }
     var html = '<div style="font-family:Georgia,serif;max-width:720px;margin:40px auto;color:#1a1a1a;">'+
       '<h1 style="font-size:22px;margin:0 0 2px;">Relatório mensal — '+escapeHtml(ws.nome)+'</h1>'+
       '<div style="color:#666;font-size:13px;margin-bottom:24px;text-transform:capitalize;">'+monthLabel+'</div>'+
@@ -1101,15 +1361,15 @@
         '<div><div style="font-size:11px;color:#666;">RECEITA</div><div style="font-size:20px;">'+fmtBRL(receita)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">GASTOS</div><div style="font-size:20px;">'+fmtBRL(gastos)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">LUCRO</div><div style="font-size:20px;">'+fmtBRL(receita-gastos)+'</div></div></div>'+
-      '<h2 style="font-size:15px;">Leads fechados ('+monthLeads.length+')</h2>'+
+      '<h2 style="font-size:15px;">'+corpoTitulo+'</h2>'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><tbody>'+
-      (monthLeads.length? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;">Nenhum lead fechado neste mês.</td></tr>')+
+      corpoHtml+
       '</tbody></table><div style="margin-top:32px;font-size:10px;color:#999;">Gerado em '+new Date().toLocaleString("pt-BR")+'</div></div>';
     document.getElementById("printReport").innerHTML = html; window.print();
   });
 
   /* ---------------- INIT ---------------- */
-  saveState(); applyTheme(); applyGlobalTheme(); renderWorkspacePicker();
+  saveState(); applyTheme(); applyGlobalTheme(); renderWorkspacePicker(); applyWorkspaceTypeUI();
   renderAll();
 })();
 </script>
