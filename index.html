@@ -283,6 +283,13 @@
   .btn-wa-solid{ background:#25d366; color:#04150a; border:none; }
   .btn-wa-solid:hover{ filter:brightness(1.06); }
   .lv-domain-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:16px; display:flex; gap:18px; flex-wrap:wrap; }
+  .parcelas-list{ display:flex; flex-direction:column; gap:6px; }
+  .parcela-row{ display:flex; align-items:center; gap:12px; font-size:12px; }
+  .parcela-row .pnum{ color:var(--text-faint); flex:0 0 26px; }
+  .parcela-row .pval{ flex:0 0 90px; }
+  .parcela-row .pvenc{ flex:0 0 70px; color:var(--text-muted); }
+  .parcela-row .pvenc.danger{ color:var(--danger); font-weight:700; }
+  .parcela-row button.chip{ margin-left:auto; font-family:inherit; }
 
   .timeline-section{ border-top:1px solid var(--border); margin-top:16px; padding-top:14px; }
   .timeline-add{ display:flex; gap:6px; margin-bottom:12px; }
@@ -346,6 +353,7 @@
     <div class="side-body">
       <button class="cmdk-hint" id="cmdkHintBtn"><span>Comando rápido</span><kbd id="cmdkKeyLabel">Ctrl K</kbd></button>
       <div class="side-mini-stat" id="sideEstimativaWrap"><div class="l">Estimativa de ganho</div><div class="v tabular" id="sideEstimativa">R$ 0</div></div>
+      <div class="side-mini-stat" id="sideAReceberWrap"><div class="l">A receber (parcelas)</div><div class="v tabular" id="sideAReceber">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Receita do mês</div><div class="v tabular" id="sideReceita">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
@@ -376,7 +384,7 @@
             <input id="crmSearch" placeholder="Buscar..." style="border:1px solid var(--border);background:var(--surface-2);padding:5px 8px;font-size:10.5px;width:110px;color:var(--text);margin-left:auto;border-radius:6px;">
           </div>
           <div class="list-wrap" id="crmList" style="display:flex">
-            <div class="panel-body"><table><thead><tr><th></th><th>Lead</th><th>Cidade</th><th>Etapa</th><th class="num">Valor</th><th></th></tr></thead><tbody id="crmListRows"></tbody></table></div>
+            <div class="panel-body"><table><thead><tr><th></th><th>Lead</th><th>Cidade</th><th>Etapa</th><th class="num">Valor</th><th>Pagamento</th><th></th></tr></thead><tbody id="crmListRows"></tbody></table></div>
           </div>
           <div class="radar-wrap" id="crmRadar" style="display:none">
             <div class="chart-wrap"><canvas id="radarChart"></canvas><div class="empty-mini" id="radarEmpty" style="display:none">Sem leads em aberto pra mostrar no radar.</div></div>
@@ -525,6 +533,7 @@
   function safeChart(){ return typeof Chart !== "undefined"; }
   function daysSince(iso){ if(!iso) return 0; var d=new Date(iso+"T00:00:00"); var diff = Math.floor((Date.now()-d.getTime())/86400000); return Math.max(0,diff); }
   function daysUntil(iso){ if(!iso) return null; var d=new Date(iso+"T00:00:00"); return Math.ceil((d.getTime()-Date.now())/86400000); }
+  function addDays(iso, n){ var d = new Date((iso||todayISO())+"T00:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
   function safeUrl(u){ if(!u) return ""; if(!/^https?:\/\//i.test(u)) return "https://"+u; return u; }
   function waLink(phone){ if(!phone) return ""; var d = String(phone).replace(/\D/g,""); if(!d) return ""; if(d.length<=11) d = "55"+d; return "https://wa.me/"+d; }
 
@@ -537,6 +546,25 @@
     return "ok";
   }
   var DOMAIN_STATUS_LABEL = { ok:"Em dia", soon:"Vence em breve", late:"Vencido", none:"—" };
+
+  function pagamentoInfo(l){
+    var p = l.pagamento || { parcelado:false, parcelas:[] };
+    if(!p.parcelado || !p.parcelas.length) return { status:"none", pagas:0, total:0, aReceber:0 };
+    var pagas = p.parcelas.filter(function(pc){ return pc.pago; }).length;
+    var total = p.parcelas.length;
+    var aReceber = p.parcelas.filter(function(pc){ return !pc.pago; }).reduce(function(s,pc){ return s+Number(pc.valor||0); },0);
+    var status;
+    if(pagas===total) status = "ok";
+    else {
+      var hoje = todayISO();
+      status = p.parcelas.some(function(pc){ return !pc.pago && pc.vencimento && pc.vencimento<hoje; }) ? "late" : "soon";
+    }
+    return { status:status, pagas:pagas, total:total, aReceber:aReceber };
+  }
+  var PARCELAMENTO_LABEL = { ok:"Quitado", late:"Atrasado", soon:"Parcelando", none:"À vista" };
+  function valorAReceber(ws){
+    return ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+pagamentoInfo(l).aReceber; },0);
+  }
 
   function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 205, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [] }; }
   function pushLog(ws, texto){
@@ -580,6 +608,8 @@
         if(typeof l.site !== "string") l.site = "";
         if(typeof l.whatsapp !== "string") l.whatsapp = "";
         if(!l.dominio || typeof l.dominio !== "object") l.dominio = { contratado:false, vencimento:"", pagoPor:"Eu" };
+        if(!l.pagamento || typeof l.pagamento !== "object") l.pagamento = { parcelado:false, parcelas:[] };
+        if(!Array.isArray(l.pagamento.parcelas)) l.pagamento.parcelas = [];
         if(!Array.isArray(l.atividades)){
           l.atividades = [];
           if(l.notas){ l.atividades.push({ id: uid(), tipo:"Nota", texto: l.notas, data: (l.data? l.data+"T09:00:00":new Date().toISOString()) }); }
@@ -709,6 +739,7 @@
     document.getElementById("sideStat3Label").textContent = isDropship ? "Ticket médio" : "Taxa de conversão";
     document.getElementById("btnOpenPipeline").style.display = isDropship ? "none":"flex";
     document.getElementById("sideEstimativaWrap").style.display = isDropship ? "none":"block";
+    document.getElementById("sideAReceberWrap").style.display = isDropship ? "none":"block";
     renderTopActions();
   }
 
@@ -727,14 +758,24 @@
       if(r.data<hoje) return { texto: "Reunião com "+r.clienteNome+" ficou pra trás (era "+fmtDateShort(r.data)+")", cls:"alert" };
       return { texto: "Reunião com "+r.clienteNome+" hoje"+(r.hora?" às "+r.hora:""), cls:"warn" };
     });
+    var parcelaAlerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.pagamento && l.pagamento.parcelado; }).reduce(function(acc,l){
+      (l.pagamento.parcelas||[]).forEach(function(pc){
+        if(pc.pago || !pc.vencimento) return;
+        var d = daysUntil(pc.vencimento);
+        if(d<0) acc.push({ texto: "Parcela "+pc.numero+" de "+l.nome+" venceu há "+Math.abs(d)+" dia(s) — "+fmtBRL(pc.valor), cls:"alert" });
+        else if(d<=7) acc.push({ texto: "Parcela "+pc.numero+" de "+l.nome+" vence em "+d+" dia(s) — "+fmtBRL(pc.valor), cls:"warn" });
+      });
+      return acc;
+    }, []);
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
-    var items = alerts.concat(reuniaoAlerts).concat(normal);
+    var items = alerts.concat(parcelaAlerts).concat(reuniaoAlerts).concat(normal);
     if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
   }
   function renderSideStats(k){
     if(typeof k.estimativa === "number") document.getElementById("sideEstimativa").textContent = fmtBRL(k.estimativa);
+    if(activeWs().tipo!=="dropshipping") document.getElementById("sideAReceber").textContent = fmtBRL(valorAReceber(activeWs()));
     document.getElementById("sideReceita").textContent = fmtBRL(k.receita);
     document.getElementById("sideLucro").textContent = fmtBRL(k.lucro);
     document.getElementById("sideConversao").textContent = k.isTicketMedio ? fmtBRL(k.conversao) : k.conversao.toFixed(0)+"%";
@@ -944,11 +985,13 @@
     var list = ws.leads.slice().filter(leadFilter).sort(function(a,b){ return (b.data||"").localeCompare(a.data||""); });
     document.getElementById("crmListRows").innerHTML = list.map(function(l){
       var t = l.temperatura||"morno";
+      var pag = pagamentoInfo(l);
       return '<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+TEMP_COLOR[t]+'"></span></td>'+
         '<td class="name-cell" data-view-lead="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div><div class="secondary">'+escapeHtml(l.cidade||"")+'</div></td>'+
         '<td>'+escapeHtml(l.cidade||"—")+'</td>'+
         '<td><span class="chip '+l.stage+'">'+STAGE_LABEL[l.stage]+'</span></td>'+
         '<td class="num tabular">'+fmtBRL(l.valor)+'</td>'+
+        '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="secondary">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td>'+
         '<td><div class="row-actions"><button class="icon-btn" data-edit-lead="'+l.id+'">✎</button><button class="icon-btn" data-del-lead="'+l.id+'">✕</button></div></td></tr>';
     }).join("");
 
@@ -1086,6 +1129,19 @@
     }).join("");
   }
 
+  function parcelasViewHtml(lead){
+    var p = lead.pagamento;
+    if(!p || !p.parcelado || !p.parcelas.length) return '';
+    var pag = pagamentoInfo(lead);
+    var rows = p.parcelas.slice().sort(function(a,b){return a.numero-b.numero;}).map(function(pc){
+      var vencida = !pc.pago && pc.vencimento && pc.vencimento<todayISO();
+      return '<div class="parcela-row"><span class="pnum">#'+pc.numero+'</span><span class="pval tabular">'+fmtBRL(pc.valor)+'</span><span class="pvenc tabular'+(vencida?" danger":"")+'">'+fmtDateShort(pc.vencimento)+'</span>'+
+        '<button class="chip '+(pc.pago?"ok":(vencida?"late":"soon"))+'" data-toggle-parcela="'+pc.id+'">'+(pc.pago?"Pago":"Marcar pago")+'</button></div>';
+    }).join("");
+    return '<div class="lv-domain-box" style="flex-direction:column;align-items:stretch;">'+
+      '<div class="lv-item"><label>Parcelamento</label><div class="val">'+pag.pagas+' de '+pag.total+' parcelas pagas'+(pag.aReceber>0?' · falta receber '+fmtBRL(pag.aReceber):'')+'</div></div>'+
+      '<div class="parcelas-list">'+rows+'</div></div>';
+  }
   function openLeadViewModal(lead){
     var t = lead.temperatura||"morno";
     var tIcon = t==="quente"?"🔥":t==="frio"?"❄":"🌤";
@@ -1108,17 +1164,46 @@
         (lead.site ? '<a class="btn" href="'+escapeHtml(safeUrl(lead.site))+'" target="_blank" rel="noopener">🔗 Ver site entregue</a>' : '')+
       '</div>'+
       (dom.contratado ? '<div class="lv-domain-box"><div class="lv-item"><label>Domínio</label><div class="val"><span class="chip '+domainStatus(lead)+'">'+DOMAIN_STATUS_LABEL[domainStatus(lead)]+'</span></div></div><div class="lv-item"><label>Vencimento</label><div class="val">'+fmtDateShort(dom.vencimento)+'</div></div><div class="lv-item"><label>Pago por</label><div class="val">'+escapeHtml(dom.pagoPor||"—")+'</div></div></div>' : '')+
+      parcelasViewHtml(lead)+
       '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-list" style="margin-top:8px;">'+timelineHtml(lead.atividades)+'</div></div>'+
       '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
       '</div></div>';
     document.getElementById("lv_close").addEventListener("click", closeModal);
     document.getElementById("lv_edit").addEventListener("click", function(){ openLeadModal(lead); });
+    modalLayer.querySelectorAll("[data-toggle-parcela]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var ws = activeWs();
+        var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
+        if(!liveLead) return;
+        var pc = (liveLead.pagamento.parcelas||[]).find(function(x){return x.id===btn.getAttribute("data-toggle-parcela");});
+        if(!pc) return;
+        pc.pago = !pc.pago;
+        pc.dataPagamento = pc.pago ? todayISO() : "";
+        pushLog(ws, (pc.pago?"Parcela "+pc.numero+" paga — ":"Parcela "+pc.numero+" reaberta — ")+liveLead.nome);
+        saveState();
+        lead.pagamento = liveLead.pagamento;
+        openLeadViewModal(lead);
+        renderSideStats(computeKpis()); renderCrm(); renderTicker();
+      });
+    });
+  }
+  function parcelasEditRowsHtml(parcelas){
+    if(!parcelas.length) return '<div class="timeline-empty">Clique em "Gerar parcelas" pra criar as parcelas.</div>';
+    return parcelas.map(function(pc,i){
+      return '<div class="field-row" style="align-items:flex-end;">'+
+        '<div class="field" style="flex:0 0 40px;"><label>#'+pc.numero+'</label></div>'+
+        '<div class="field"><label>Valor (R$)</label><input type="number" step="0.01" class="pc-valor" data-pc-id="'+pc.id+'" data-pc-numero="'+pc.numero+'" value="'+pc.valor+'"></div>'+
+        '<div class="field"><label>Vencimento</label><input type="date" class="pc-venc" value="'+(pc.vencimento||"")+'"></div>'+
+        '<div class="field" style="flex:0 0 auto;"><label style="display:flex;align-items:center;gap:5px;font-weight:600;white-space:nowrap;"><input type="checkbox" class="pc-pago"'+(pc.pago?" checked":"")+'> Pago</label></div>'+
+      '</div>';
+    }).join("");
   }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"} };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]} };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
+    var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
     var waHref = waLink(lead.whatsapp);
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal wide">'+
@@ -1136,6 +1221,11 @@
         '<div class="field-row"><div class="field"><label>Vencimento</label><input id="l_dom_venc" type="date" value="'+(dom.vencimento||"")+'"></div>'+
         '<div class="field"><label>Pago por</label><select id="l_dom_pago">'+PAGO_POR.map(function(p){return '<option'+(dom.pagoPor===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div></div>'+
       '</div>'+
+      '<div class="checkbox-row"><input type="checkbox" id="l_parcelado"'+(pagamento.parcelado?" checked":"")+'><label for="l_parcelado" style="margin:0;">Cliente vai parcelar o pagamento</label></div>'+
+      '<div class="domain-sub" id="parcelasSub" style="display:'+(pagamento.parcelado?"block":"none")+';">'+
+        '<div class="field-row" style="align-items:flex-end;"><div class="field"><label>Nº de parcelas</label><input id="l_num_parcelas" type="number" min="2" max="24" value="'+(pagamento.parcelas.length||2)+'"></div><div class="field" style="flex:0 0 auto;"><button type="button" class="btn sm" id="l_gerar_parcelas">Gerar parcelas</button></div></div>'+
+        '<div id="parcelasRowsList">'+parcelasEditRowsHtml(pagamento.parcelas)+'</div>'+
+      '</div>'+
       '<div class="modal-actions">'+(editing?'<button class="danger-link" id="l_delete">Excluir</button>':'')+'<button class="btn" id="l_cancel">Cancelar</button><button class="btn primary" id="l_save">Salvar</button></div>'+
       (editing ? '<div class="timeline-section"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-add" style="margin-top:8px;"><select id="t_tipo">'+ACT_TYPES.map(function(t){return '<option>'+t+'</option>';}).join("")+'</select><input id="t_texto" placeholder="O que aconteceu?"><button class="btn sm" id="t_add">Registrar</button></div>'+
@@ -1143,6 +1233,29 @@
       '</div></div>';
     document.getElementById("l_cancel").addEventListener("click", closeModal);
     document.getElementById("l_dom_on").addEventListener("change", function(e){ document.getElementById("domainSub").style.display = e.target.checked ? "block":"none"; });
+    document.getElementById("l_parcelado").addEventListener("change", function(e){ document.getElementById("parcelasSub").style.display = e.target.checked ? "block":"none"; });
+    document.getElementById("l_gerar_parcelas").addEventListener("click", function(){
+      var n = Math.max(2, Math.min(24, parseInt(document.getElementById("l_num_parcelas").value)||2));
+      var valorTotal = parseFloat(document.getElementById("l_valor").value)||0;
+      var base = Math.floor((valorTotal/n)*100)/100;
+      var dataBase = lead.data || todayISO();
+      var existentes = pagamento.parcelas || [];
+      var novas = [];
+      for(var i=0;i<n;i++){
+        var antiga = existentes[i];
+        var valorParcela = i===n-1 ? Math.round((valorTotal-base*(n-1))*100)/100 : base;
+        novas.push({
+          id: antiga ? antiga.id : uid(),
+          numero: i+1,
+          valor: antiga ? antiga.valor : valorParcela,
+          vencimento: antiga ? antiga.vencimento : addDays(dataBase, 30*(i+1)),
+          pago: antiga ? antiga.pago : false,
+          dataPagamento: antiga ? antiga.dataPagamento : ""
+        });
+      }
+      pagamento.parcelas = novas;
+      document.getElementById("parcelasRowsList").innerHTML = parcelasEditRowsHtml(novas);
+    });
     document.querySelectorAll('#tempRadioGroup input[name="l_temp"]').forEach(function(r){
       r.addEventListener("change", function(){ document.querySelectorAll('#tempRadioGroup label').forEach(function(lb){ lb.classList.toggle("checked", lb.getAttribute("data-temp-opt")===r.value); }); });
     });
@@ -1172,6 +1285,27 @@
       var novoStage = document.getElementById("l_stage").value;
       var dataFechamento = lead.dataFechamento || "";
       if(novoStage==="fechado" && lead.stage!=="fechado") dataFechamento = todayISO();
+      var parceladoOn = document.getElementById("l_parcelado").checked;
+      var parcelas = [];
+      if(parceladoOn){
+        modalLayer.querySelectorAll("#parcelasRowsList .field-row").forEach(function(row){
+          var valorEl = row.querySelector(".pc-valor");
+          if(!valorEl) return;
+          var vencEl = row.querySelector(".pc-venc");
+          var pagoEl = row.querySelector(".pc-pago");
+          var pcId = valorEl.getAttribute("data-pc-id") || uid();
+          var existente = (pagamento.parcelas||[]).find(function(p){return p.id===pcId;});
+          var pago = pagoEl ? pagoEl.checked : false;
+          parcelas.push({
+            id: pcId,
+            numero: parseInt(valorEl.getAttribute("data-pc-numero"),10) || (parcelas.length+1),
+            valor: parseFloat(valorEl.value)||0,
+            vencimento: vencEl ? vencEl.value : "",
+            pago: pago,
+            dataPagamento: pago ? ((existente && existente.dataPagamento) || todayISO()) : ""
+          });
+        });
+      }
       var updated = {
         id: lead.id, nome:nome,
         nicho: document.getElementById("l_nicho").value.trim(),
@@ -1185,6 +1319,7 @@
         origem: document.getElementById("l_origem").value,
         data: document.getElementById("l_data").value || todayISO(),
         dominio: { contratado: domOn, vencimento: domOn ? document.getElementById("l_dom_venc").value : "", pagoPor: domOn ? document.getElementById("l_dom_pago").value : "Eu" },
+        pagamento: { parcelado: parceladoOn, parcelas: parcelas },
         atividades: lead.atividades || []
       };
       var ws = activeWs();
