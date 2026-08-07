@@ -42,6 +42,7 @@
     --cut: 12px;
   }
   *{box-sizing:border-box;}
+  body{ margin:0; color:var(--text); }
   .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
   @keyframes scan{ 0%{ transform: translateY(-100%); } 100%{ transform: translateY(100vh); } }
   @keyframes tickerScroll{ 0%{ transform: translateX(0); } 100%{ transform: translateX(-50%); } }
@@ -645,9 +646,12 @@
     "perola": { nome:"Pérola", modo:"light", bg:"#f7f4ee", bg1:"#efe9dd", surface:"#ffffff", surface2:"#f0ece2", surface3:"#e6e0d2", border:"#d8d0bd", borderStrong:"#c2b89e", text:"#221f18", textMuted:"#5c5648", textFaint:"#847c68", shadow:"0 2px 10px rgba(60,50,30,.10)", accentInk:"#1a1710", success:"#1a8a4f", warning:"#a15a06", danger:"#c62b3f" },
     "artico": { nome:"Ártico", modo:"light", bg:"#f2f5f9", bg1:"#e9eef5", surface:"#ffffff", surface2:"#e8edf4", surface3:"#dbe3ee", border:"#c7d2e0", borderStrong:"#aebdd2", text:"#151b26", textMuted:"#4f5c70", textFaint:"#7688a0", shadow:"0 2px 10px rgba(20,30,50,.10)", accentInk:"#0f141c", success:"#12875a", warning:"#a15a06", danger:"#c62b3f" },
     "grafite-claro": { nome:"Grafite claro", modo:"light", bg:"#f4f4f5", bg1:"#eaeaeb", surface:"#ffffff", surface2:"#ebebec", surface3:"#dedee0", border:"#cccccf", borderStrong:"#b3b3b7", text:"#18181a", textMuted:"#55555a", textFaint:"#7c7c82", shadow:"0 2px 10px rgba(0,0,0,.08)", accentInk:"#111113", success:"#188a54", warning:"#9c5b04", danger:"#c22b3d" },
-    "ambar": { nome:"Âmbar", modo:"light", bg:"#faf3e6", bg1:"#f2e7d2", surface:"#fffaf1", surface2:"#f3e6cd", surface3:"#e8d5ab", border:"#d9c093", borderStrong:"#c0a06a", text:"#241a0a", textMuted:"#6b5330", textFaint:"#94805c", shadow:"0 2px 10px rgba(90,60,10,.12)", accentInk:"#1c1409", success:"#166d3f", warning:"#9c5a05", danger:"#b3272f" }
+    "ambar": { nome:"Âmbar", modo:"light", bg:"#faf3e6", bg1:"#f2e7d2", surface:"#fffaf1", surface2:"#f3e6cd", surface3:"#e8d5ab", border:"#d9c093", borderStrong:"#c0a06a", text:"#241a0a", textMuted:"#6b5330", textFaint:"#94805c", shadow:"0 2px 10px rgba(90,60,10,.12)", accentInk:"#1c1409", success:"#166d3f", warning:"#9c5a05", danger:"#b3272f" },
+    "ametista": { nome:"Ametista", modo:"dark", bg:"#0d0818", bg1:"#120b22", surface:"#180f2c", surface2:"#221640", surface3:"#2e1e54", border:"#4a3170", borderStrong:"#6b479c", text:"#f3ecff", textMuted:"#b3a0d4", textFaint:"#8874ab", shadow:"0 4px 20px rgba(139,71,220,.22)", accentInk:"#0d0818", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
+    "menta": { nome:"Menta", modo:"light", bg:"#f2f8f5", bg1:"#e7f2ec", surface:"#ffffff", surface2:"#e9f3ee", surface3:"#d7ebe1", border:"#c3ddd1", borderStrong:"#a3c9b7", text:"#142520", textMuted:"#4d6b5e", textFaint:"#789284", shadow:"0 2px 10px rgba(20,60,40,.10)", accentInk:"#0c1712", success:"#12875a", warning:"#a15a06", danger:"#c62b3f" },
+    "rose": { nome:"Rosé", modo:"light", bg:"#fbf2f3", bg1:"#f6e6e8", surface:"#ffffff", surface2:"#f8e9eb", surface3:"#f0d6da", border:"#e2bec4", borderStrong:"#cf9aa4", text:"#2a1418", textMuted:"#74505a", textFaint:"#9c7883", shadow:"0 2px 10px rgba(150,40,70,.10)", accentInk:"#1c0d10", success:"#187a4f", warning:"#a15606", danger:"#b3272f" }
   };
-  var THEME_ORDER = ["wes-tech","meia-noite","onix","terminal","safira","perola","artico","grafite-claro","ambar"];
+  var THEME_ORDER = ["wes-tech","meia-noite","onix","terminal","safira","perola","artico","grafite-claro","ambar","ametista","menta","rose"];
   function applyGlobalTheme(){
     var t = THEMES[state.themeId] || THEMES["wes-tech"];
     root.style.setProperty("--bg", t.bg);
