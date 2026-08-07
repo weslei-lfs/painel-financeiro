@@ -143,6 +143,7 @@
   tbody tr:hover{ background: var(--surface-2); }
   td.num, th.num{ text-align:right; }
   .name-cell .primary{ font-weight:700; } .name-cell .secondary{ color:var(--text-faint); font-size:10px; }
+  .chip-note{ color:var(--text-faint); font-size:10px; margin-left:4px; }
   .site-link{ color:var(--accent); font-size:11px; text-decoration:none; }
   .site-link:hover{ text-decoration:underline; }
   .chip{ display:inline-flex; align-items:center; padding:2px 8px; font-size:9.5px; font-weight:800; letter-spacing:.2px; white-space:nowrap; border-radius:20px; }
@@ -377,7 +378,7 @@
       <div class="panel z-crm">
         <div id="primaryAgencia">
           <div class="crm-toolbar">
-            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button></div>
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button></div>
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
@@ -396,6 +397,11 @@
               <button class="btn primary sm" id="btnNewReuniao">+ Reunião</button>
             </div>
             <div class="reuniao-inline-body" id="reuniaoBody"></div>
+          </div>
+          <div class="list-wrap" id="crmClientes" style="display:none">
+            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
+              <div class="empty-state" id="clientesEmpty" style="display:none"><div class="big">◆</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui.</p></div>
+            </div>
           </div>
         </div>
         <div id="primaryDropship" style="display:none">
@@ -922,8 +928,10 @@
       document.getElementById("crmList").style.display = crmTab==="lista" ? "flex":"none";
       document.getElementById("crmRadar").style.display = crmTab==="radar" ? "flex":"none";
       document.getElementById("crmReunioes").style.display = crmTab==="reunioes" ? "flex":"none";
+      document.getElementById("crmClientes").style.display = crmTab==="clientes" ? "flex":"none";
       if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
       if(crmTab==="reunioes"){ renderReunioes(); }
+      if(crmTab==="clientes"){ renderClientes(); }
     });
   });
   document.getElementById("crmSearch").addEventListener("input", function(e){ crmSearchTerm = e.target.value.toLowerCase(); renderCrm(); });
@@ -991,7 +999,7 @@
         '<td>'+escapeHtml(l.cidade||"—")+'</td>'+
         '<td><span class="chip '+l.stage+'">'+STAGE_LABEL[l.stage]+'</span></td>'+
         '<td class="num tabular">'+fmtBRL(l.valor)+'</td>'+
-        '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="secondary">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td>'+
+        '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="chip-note">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td>'+
         '<td><div class="row-actions"><button class="icon-btn" data-edit-lead="'+l.id+'">✎</button><button class="icon-btn" data-del-lead="'+l.id+'">✕</button></div></td></tr>';
     }).join("");
 
@@ -1004,6 +1012,31 @@
       if(viewCell){ var l2 = ws.leads.find(function(x){return x.id===viewCell.getAttribute("data-view-lead");}); if(l2) openLeadViewModal(l2); }
     };
     if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
+    if(crmTab==="clientes"){ renderClientes(); }
+  }
+  function renderClientes(){
+    var ws = activeWs();
+    var clientes = ws.leads.filter(function(l){ return l.stage==="fechado"; }).filter(leadFilter)
+      .sort(function(a,b){ return (b.dataFechamento||b.data||"").localeCompare(a.dataFechamento||a.data||""); });
+    document.getElementById("clientesEmpty").style.display = clientes.length ? "none":"flex";
+    document.getElementById("crmClientesRows").innerHTML = clientes.map(function(l){
+      var pag = pagamentoInfo(l);
+      var temSite = !!l.site;
+      var temDominio = l.dominio && l.dominio.contratado;
+      var waHref = waLink(l.whatsapp);
+      return '<tr><td class="name-cell" data-view-cliente="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div></td>'+
+        '<td>'+escapeHtml(l.cidade||"—")+'</td>'+
+        '<td>'+(waHref?'<a class="site-link" href="'+waHref+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+escapeHtml(l.whatsapp)+'</a>':"—")+'</td>'+
+        '<td><span class="chip '+(temSite?"ok":"none")+'">'+(temSite?"Sim":"Não")+'</span></td>'+
+        '<td><span class="chip '+(temDominio?"ok":"none")+'">'+(temDominio?"Sim":"Não")+'</span></td>'+
+        '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="chip-note">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td></tr>';
+    }).join("");
+    document.getElementById("crmClientesRows").onclick = function(e){
+      var cell = e.target.closest("[data-view-cliente]");
+      if(!cell) return;
+      var l = ws.leads.find(function(x){return x.id===cell.getAttribute("data-view-cliente");});
+      if(l) openLeadViewModal(l);
+    };
   }
   function kanbanCardHtml(l){
     var t = l.temperatura||"morno";
