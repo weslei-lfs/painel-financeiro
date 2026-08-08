@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Vértice — Wes Tech</title>
+<title>Vértice — Network Space</title>
 <meta name="description" content="Terminal de negócios: CRM, domínios, financeiro e configurações numa única tela.">
-<link rel="icon" type="image/png" href="logo-mark.png">
+<link rel="icon" type="image/png" href="logo-mark-light.png" id="faviconLink">
 </head>
 <body>
 <h2 class="sr-only">Vértice — terminal de negócios numa única tela: CRM em pipeline, radar de oportunidades, controle de domínios e vencimentos, financeiro e configurações</h2>
@@ -73,7 +73,7 @@
   .sidebar{ flex:0 0 200px; background: var(--bg-1); border-right:1px solid var(--border); display:flex; flex-direction:column; min-height:0; position:relative; z-index:2; }
   .side-logo{ display:flex; align-items:center; gap:9px; padding:16px 16px 14px; border-bottom:1px solid var(--border); }
   .side-logo .glyph{ width:32px;height:32px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; filter: drop-shadow(0 0 6px rgba(79,184,255,.5)); }
-  .westech-mark{ width:100%; height:100%; object-fit:contain; }
+  .side-mark{ width:100%; height:100%; object-fit:contain; }
   .side-logo .word{ font-weight:800; letter-spacing:1.5px; font-size:15px; }
   .side-logo .word small{ display:block; font-weight:600; font-size:9px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; }
 
@@ -345,9 +345,9 @@
   <aside class="sidebar">
     <div class="side-logo">
       <div class="glyph">
-        <img src="logo-mark.png" alt="Wes Tech" class="westech-mark">
+        <img src="logo-mark-dark.png" alt="Network Space" class="side-mark" id="sideMark">
       </div>
-      <div class="word">VÉRTICE<small>Wes Tech — Agência de Sites</small></div>
+      <div class="word">VÉRTICE<small>Network Space — Agência de Sites</small></div>
     </div>
 
     <div class="workspace-picker">
@@ -671,7 +671,7 @@
 
   /* ---------------- THEMES ---------------- */
   var THEMES = {
-    "wes-tech": { nome:"Wes Tech", modo:"dark", bg:"#040810", bg1:"#071022", surface:"#0b1830", surface2:"#0f2044", surface3:"#153060", border:"#2a4d80", borderStrong:"#3f74b8", text:"#eaf6ff", textMuted:"#8fb8e0", textFaint:"#5f86b3", shadow:"0 4px 22px rgba(63,169,255,.18)", accentInk:"#040810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
+    "wes-tech": { nome:"Network Space", modo:"dark", bg:"#040810", bg1:"#071022", surface:"#0b1830", surface2:"#0f2044", surface3:"#153060", border:"#2a4d80", borderStrong:"#3f74b8", text:"#eaf6ff", textMuted:"#8fb8e0", textFaint:"#5f86b3", shadow:"0 4px 22px rgba(63,169,255,.18)", accentInk:"#040810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "meia-noite": { nome:"Meia-noite", modo:"dark", bg:"#070a10", bg1:"#0a0e18", surface:"#111a2b", surface2:"#1c2740", surface3:"#283355", border:"#3d4a6b", borderStrong:"#55638c", text:"#eef1f7", textMuted:"#9aa4b8", textFaint:"#7885a0", shadow:"0 4px 16px rgba(0,0,0,.45)", accentInk:"#070810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "onix": { nome:"Ônix", modo:"dark", bg:"#0a0a0a", bg1:"#101010", surface:"#161616", surface2:"#1f1f1f", surface3:"#2a2a2a", border:"#3a3a3a", borderStrong:"#4d4d4d", text:"#f2f2f2", textMuted:"#a3a3a3", textFaint:"#7a7a7a", shadow:"0 4px 16px rgba(0,0,0,.5)", accentInk:"#0a0a0a", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "terminal": { nome:"Terminal", modo:"dark", bg:"#050a07", bg1:"#0a1410", surface:"#0d1811", surface2:"#132419", surface3:"#1c3325", border:"#2f4a38", borderStrong:"#436350", text:"#eafaf0", textMuted:"#9fc2ab", textFaint:"#6f9080", shadow:"0 4px 16px rgba(0,0,0,.5)", accentInk:"#050a07", success:"#4ee08a", warning:"#e0c34e", danger:"#ff6b6b" },
@@ -710,6 +710,11 @@
     root.style.setProperty("--morno", t.warning);
     root.style.setProperty("--frio", frioColor);
     if(typeof TEMP_COLOR !== "undefined"){ TEMP_COLOR.quente = t.danger; TEMP_COLOR.morno = t.warning; TEMP_COLOR.frio = frioColor; }
+    // A marca (lobo prata) é clara-sobre-transparente ou escura-sobre-transparente;
+    // troca pra sempre ter bom contraste com o fundo do tema ativo.
+    var markFile = t.modo==="light" ? "logo-mark-light.png" : "logo-mark-dark.png";
+    var sideMark = document.getElementById("sideMark");
+    if(sideMark) sideMark.src = markFile;
   }
 
   /* ---------------- WORKSPACE UI ---------------- */
@@ -1320,29 +1325,29 @@
     var dom = lead.dominio || {contratado:false};
     var ass = lead.assinatura || {ativa:false};
     var linhas = [];
-    linhas.push("TERMO DE ENTREGA E RESPONSABILIDADE — WES TECH");
+    linhas.push("TERMO DE ENTREGA E RESPONSABILIDADE — NETWORK SPACE");
     linhas.push("");
     linhas.push("Cliente: " + (lead.nome || "—"));
     linhas.push("Data: " + fmtDateShort(todayISO()));
     linhas.push("");
     linhas.push("1. Domínio");
     if(dom.contratado){
-      linhas.push("O domínio do site está registrado na conta do próprio cliente" + (dom.pagoPor==="Eu" ? " (custo do 1º ano coberto pela Wes Tech como cortesia)." : ".") + " A partir da primeira renovação, o pagamento e a responsabilidade pela manutenção do domínio são do cliente. A Wes Tech não se responsabiliza por perda do domínio por falta de renovação.");
+      linhas.push("O domínio do site está registrado na conta do próprio cliente" + (dom.pagoPor==="Eu" ? " (custo do 1º ano coberto pela Network Space como cortesia)." : ".") + " A partir da primeira renovação, o pagamento e a responsabilidade pela manutenção do domínio são do cliente. A Network Space não se responsabiliza por perda do domínio por falta de renovação.");
     } else {
       linhas.push("Este site ainda não possui domínio próprio registrado.");
     }
     linhas.push("");
     linhas.push("2. Hospedagem");
-    linhas.push("O site é publicado em plataforma gratuita (sem custo de servidor repassado ao cliente). A Wes Tech garante a publicação, mas este serviço não conta com contrato formal de disponibilidade (SLA).");
+    linhas.push("O site é publicado em plataforma gratuita (sem custo de servidor repassado ao cliente). A Network Space garante a publicação, mas este serviço não conta com contrato formal de disponibilidade (SLA).");
     linhas.push("");
     linhas.push("3. Suporte e manutenção");
     if(ass.ativa){
-      linhas.push("O cliente possui assinatura ativa de manutenção no valor de " + fmtBRL(ass.valorMensal) + "/mês, com cobrança todo dia " + (ass.diaCobranca||5) + ". Enquanto a assinatura estiver ativa e em dia, a Wes Tech realiza as atualizações e os ajustes solicitados pelo cliente.");
+      linhas.push("O cliente possui assinatura ativa de manutenção no valor de " + fmtBRL(ass.valorMensal) + "/mês, com cobrança todo dia " + (ass.diaCobranca||5) + ". Enquanto a assinatura estiver ativa e em dia, a Network Space realiza as atualizações e os ajustes solicitados pelo cliente.");
     } else {
       linhas.push("O cliente optou por não contratar a assinatura de manutenção. A partir da entrega, qualquer alteração futura no site é orçada separadamente, ou pode ser resolvida contratando a assinatura mensal a qualquer momento.");
     }
     linhas.push("");
-    linhas.push("Documento gerado automaticamente pelo painel Vértice — Wes Tech.");
+    linhas.push("Documento gerado automaticamente pelo painel Vértice — Network Space.");
     return linhas.join("\n");
   }
   function openTermoModal(lead){
@@ -1407,7 +1412,7 @@
       '<div class="domain-sub" id="domainSub" style="display:'+(dom.contratado?"block":"none")+';">'+
         '<div class="field-row"><div class="field"><label>Vencimento</label><input id="l_dom_venc" type="date" value="'+(dom.vencimento||"")+'"></div>'+
         '<div class="field"><label>Registrado na conta de</label><select id="l_dom_pago">'+PAGO_POR.map(function(p){return '<option'+(dom.pagoPor===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div></div>'+
-        '<div class="field-hint">Recomendado: sempre "Cliente" — assim a renovação a partir do 2º ano é responsabilidade dele, não da Wes Tech.</div>'+
+        '<div class="field-hint">Recomendado: sempre "Cliente" — assim a renovação a partir do 2º ano é responsabilidade dele, não da Network Space.</div>'+
       '</div>'+
       '<div class="checkbox-row"><input type="checkbox" id="l_parcelado"'+(pagamento.parcelado?" checked":"")+'><label for="l_parcelado" style="margin:0;">Cliente vai parcelar o pagamento</label></div>'+
       '<div class="domain-sub" id="parcelasSub" style="display:'+(pagamento.parcelado?"block":"none")+';">'+
