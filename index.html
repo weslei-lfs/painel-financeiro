@@ -611,7 +611,7 @@
     return ws.leads.filter(function(l){ return l.assinatura && l.assinatura.ativa; }).reduce(function(s,l){ return s+Number(l.assinatura.valorMensal||0); },0);
   }
 
-  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 205, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [] }; }
+  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 207, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [] }; }
   function pushLog(ws, texto){
     ws.activityLog = ws.activityLog || [];
     ws.activityLog.unshift({ id: uid(), texto: texto, data: new Date().toISOString() });
@@ -678,7 +678,7 @@
 
   /* ---------------- THEMES ---------------- */
   var THEMES = {
-    "wes-tech": { nome:"Network Space", modo:"dark", bg:"#040810", bg1:"#071022", surface:"#0b1830", surface2:"#0f2044", surface3:"#153060", border:"#2a4d80", borderStrong:"#3f74b8", text:"#eaf6ff", textMuted:"#8fb8e0", textFaint:"#5f86b3", shadow:"0 4px 22px rgba(63,169,255,.18)", accentInk:"#040810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
+    "wes-tech": { nome:"Network Space", modo:"dark", bg:"#09090b", bg1:"#0f0f12", surface:"#151519", surface2:"#1c1c21", surface3:"#26262d", border:"#38383f", borderStrong:"#4f4f58", text:"#f3f3f5", textMuted:"#a9a9b2", textFaint:"#797982", shadow:"0 4px 22px rgba(31,147,242,.20)", accentInk:"#08090c", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "meia-noite": { nome:"Meia-noite", modo:"dark", bg:"#070a10", bg1:"#0a0e18", surface:"#111a2b", surface2:"#1c2740", surface3:"#283355", border:"#3d4a6b", borderStrong:"#55638c", text:"#eef1f7", textMuted:"#9aa4b8", textFaint:"#7885a0", shadow:"0 4px 16px rgba(0,0,0,.45)", accentInk:"#070810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "onix": { nome:"Ônix", modo:"dark", bg:"#0a0a0a", bg1:"#101010", surface:"#161616", surface2:"#1f1f1f", surface3:"#2a2a2a", border:"#3a3a3a", borderStrong:"#4d4d4d", text:"#f2f2f2", textMuted:"#a3a3a3", textFaint:"#7a7a7a", shadow:"0 4px 16px rgba(0,0,0,.5)", accentInk:"#0a0a0a", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "terminal": { nome:"Terminal", modo:"dark", bg:"#050a07", bg1:"#0a1410", surface:"#0d1811", surface2:"#132419", surface3:"#1c3325", border:"#2f4a38", borderStrong:"#436350", text:"#eafaf0", textMuted:"#9fc2ab", textFaint:"#6f9080", shadow:"0 4px 16px rgba(0,0,0,.5)", accentInk:"#050a07", success:"#4ee08a", warning:"#e0c34e", danger:"#ff6b6b" },
