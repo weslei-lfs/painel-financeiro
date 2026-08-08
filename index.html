@@ -272,6 +272,7 @@
   .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
   .danger-link{ color:var(--danger); background:none; border:none; font-size:11px; font-weight:700; margin-right:auto; }
   .domain-sub{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:10px; margin-top:-4px; margin-bottom:12px; }
+  .field-hint{ font-size:10.5px; color:var(--text-faint); line-height:1.4; margin-top:4px; }
 
   /* -------- lead / client view (read-only profile) -------- */
   .name-cell{ cursor:pointer; }
@@ -346,7 +347,7 @@
       <div class="glyph">
         <img src="logo-mark.png" alt="Wes Tech" class="westech-mark">
       </div>
-      <div class="word">VÉRTICE<small>Wes Tech</small></div>
+      <div class="word">VÉRTICE<small>Wes Tech — Agência de Sites</small></div>
     </div>
 
     <div class="workspace-picker">
@@ -358,6 +359,7 @@
       <button class="cmdk-hint" id="cmdkHintBtn"><span>Comando rápido</span><kbd id="cmdkKeyLabel">Ctrl K</kbd></button>
       <div class="side-mini-stat" id="sideEstimativaWrap"><div class="l">Estimativa de ganho</div><div class="v tabular" id="sideEstimativa">R$ 0</div></div>
       <div class="side-mini-stat" id="sideAReceberWrap"><div class="l">A receber (parcelas)</div><div class="v tabular" id="sideAReceber">R$ 0</div></div>
+      <div class="side-mini-stat" id="sideMrrWrap"><div class="l">Receita recorrente (MRR)</div><div class="v tabular" id="sideMrr">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Receita do mês</div><div class="v tabular" id="sideReceita">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
@@ -402,7 +404,7 @@
             <div class="reuniao-inline-body" id="reuniaoBody"></div>
           </div>
           <div class="list-wrap" id="crmClientes" style="display:none">
-            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
+            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th><th>Assinatura</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
               <div class="empty-state" id="clientesEmpty" style="display:none"><div class="big">◆</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui.</p></div>
             </div>
           </div>
@@ -428,7 +430,7 @@
         </div>
         <div class="panel-body" id="secondaryDropship" style="display:none">
           <table><thead><tr><th>Produto</th><th class="num">Qtd</th><th class="num">Venda</th><th class="num">Lucro</th><th>Data</th><th></th></tr></thead><tbody id="vendaRows"></tbody></table>
-          <div class="empty-state" id="vendaEmpty" style="display:none"><div class="big">🛒</div><p>Nenhuma venda registrada ainda.</p></div>
+          <div class="empty-state" id="vendaEmpty" style="display:none"><div class="big">🛒</div><p>Nenhuma venda registrada ainda. Assim que você fechar uma venda de um produto do catálogo, ela aparece aqui.</p></div>
         </div>
       </div>
 
@@ -446,7 +448,7 @@
             <div class="gauge-legend" id="donutLegend" style="display:flex;flex-direction:column;gap:3px;font-size:10px;justify-content:center;"></div>
           </div>
           <table><thead><tr><th>Categoria</th><th class="num">Valor</th><th></th></tr></thead><tbody id="expenseRows"></tbody></table>
-          <div class="empty-state" id="expenseEmpty" style="display:none"><div class="big">◇</div><p>Nenhum gasto registrado.</p></div>
+          <div class="empty-state" id="expenseEmpty" style="display:none"><div class="big">◇</div><p>Nenhum gasto registrado. Clique em "+ Gasto" pra lançar o primeiro e acompanhar seu lucro real.</p></div>
         </div>
       </div>
 
@@ -575,6 +577,28 @@
     return ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+pagamentoInfo(l).aReceber; },0);
   }
 
+  // ---- Assinatura de manutenção (receita recorrente) ----
+  function mesAtualISO(){ var d = new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+  function assinaturaInfo(l){
+    var a = l.assinatura;
+    if(!a || !a.ativa) return { status:"none", cicloAtual:null, mesesPagos:0, totalMeses:0, mesAtual:mesAtualISO() };
+    var mesAtual = mesAtualISO();
+    var ciclos = a.ciclos || [];
+    var cicloAtual = ciclos.find(function(c){ return c.mes===mesAtual; }) || null;
+    var mesesPagos = ciclos.filter(function(c){ return c.pago; }).length;
+    var status;
+    if(cicloAtual && cicloAtual.pago) status = "ok";
+    else {
+      var hoje = new Date().getDate();
+      status = hoje > (a.diaCobranca||5) ? "late" : "soon";
+    }
+    return { status:status, cicloAtual:cicloAtual, mesesPagos:mesesPagos, totalMeses:ciclos.length, mesAtual:mesAtual };
+  }
+  var ASSINATURA_LABEL = { ok:"Em dia", late:"Atrasada", soon:"Ativa", none:"Sem assinatura" };
+  function mrr(ws){
+    return ws.leads.filter(function(l){ return l.assinatura && l.assinatura.ativa; }).reduce(function(s,l){ return s+Number(l.assinatura.valorMensal||0); },0);
+  }
+
   function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 205, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [] }; }
   function pushLog(ws, texto){
     ws.activityLog = ws.activityLog || [];
@@ -619,6 +643,8 @@
         if(!l.dominio || typeof l.dominio !== "object") l.dominio = { contratado:false, vencimento:"", pagoPor:"Eu" };
         if(!l.pagamento || typeof l.pagamento !== "object") l.pagamento = { parcelado:false, parcelas:[] };
         if(!Array.isArray(l.pagamento.parcelas)) l.pagamento.parcelas = [];
+        if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = { ativa:false, valorMensal:79, diaCobranca:5, dataInicio:"", ciclos:[] };
+        if(!Array.isArray(l.assinatura.ciclos)) l.assinatura.ciclos = [];
         if(!Array.isArray(l.atividades)){
           l.atividades = [];
           if(l.notas){ l.atividades.push({ id: uid(), tipo:"Nota", texto: l.notas, data: (l.data? l.data+"T09:00:00":new Date().toISOString()) }); }
@@ -752,6 +778,7 @@
     document.getElementById("btnOpenPipeline").style.display = isDropship ? "none":"flex";
     document.getElementById("sideEstimativaWrap").style.display = isDropship ? "none":"block";
     document.getElementById("sideAReceberWrap").style.display = isDropship ? "none":"block";
+    document.getElementById("sideMrrWrap").style.display = isDropship ? "none":"block";
     renderTopActions();
   }
 
@@ -779,15 +806,23 @@
       });
       return acc;
     }, []);
+    var assinaturaAlerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.assinatura && l.assinatura.ativa; }).map(function(l){
+      var info = assinaturaInfo(l);
+      if(info.status==="late") return { texto: "Assinatura de "+l.nome+" está atrasada — "+fmtBRL(l.assinatura.valorMensal), cls:"alert" };
+      return null;
+    }).filter(Boolean);
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
-    var items = alerts.concat(parcelaAlerts).concat(reuniaoAlerts).concat(normal);
+    var items = alerts.concat(parcelaAlerts).concat(assinaturaAlerts).concat(reuniaoAlerts).concat(normal);
     if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
   }
   function renderSideStats(k){
     if(typeof k.estimativa === "number") document.getElementById("sideEstimativa").textContent = fmtBRL(k.estimativa);
-    if(activeWs().tipo!=="dropshipping") document.getElementById("sideAReceber").textContent = fmtBRL(valorAReceber(activeWs()));
+    if(activeWs().tipo!=="dropshipping"){
+      document.getElementById("sideAReceber").textContent = fmtBRL(valorAReceber(activeWs()));
+      document.getElementById("sideMrr").textContent = fmtBRL(mrr(activeWs()));
+    }
     document.getElementById("sideReceita").textContent = fmtBRL(k.receita);
     document.getElementById("sideLucro").textContent = fmtBRL(k.lucro);
     document.getElementById("sideConversao").textContent = k.isTicketMedio ? fmtBRL(k.conversao) : k.conversao.toFixed(0)+"%";
@@ -1027,6 +1062,7 @@
     document.getElementById("clientesEmpty").style.display = clientes.length ? "none":"flex";
     document.getElementById("crmClientesRows").innerHTML = clientes.map(function(l){
       var pag = pagamentoInfo(l);
+      var ass = assinaturaInfo(l);
       var temSite = !!l.site;
       var temDominio = l.dominio && l.dominio.contratado;
       var waHref = waLink(l.whatsapp);
@@ -1035,7 +1071,8 @@
         '<td>'+(waHref?'<a class="site-link" href="'+waHref+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+escapeHtml(l.whatsapp)+'</a>':"—")+'</td>'+
         '<td><span class="chip '+(temSite?"ok":"none")+'">'+(temSite?"Sim":"Não")+'</span></td>'+
         '<td><span class="chip '+(temDominio?"ok":"none")+'">'+(temDominio?"Sim":"Não")+'</span></td>'+
-        '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="chip-note">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td></tr>';
+        '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="chip-note">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td>'+
+        '<td><span class="chip '+ass.status+'">'+ASSINATURA_LABEL[ass.status]+'</span></td></tr>';
     }).join("");
     document.getElementById("crmClientesRows").onclick = function(e){
       var cell = e.target.closest("[data-view-cliente]");
@@ -1181,6 +1218,21 @@
       '<div class="lv-item"><label>Parcelamento</label><div class="val">'+pag.pagas+' de '+pag.total+' parcelas pagas'+(pag.aReceber>0?' · falta receber '+fmtBRL(pag.aReceber):'')+'</div></div>'+
       '<div class="parcelas-list">'+rows+'</div></div>';
   }
+  function assinaturaViewHtml(lead){
+    var a = lead.assinatura;
+    if(!a || !a.ativa) return '';
+    var info = assinaturaInfo(lead);
+    var cicloAtualPago = info.cicloAtual && info.cicloAtual.pago;
+    var historico = (a.ciclos||[]).slice().sort(function(x,y){ return y.mes.localeCompare(x.mes); }).slice(0,6);
+    var rows = historico.map(function(c){
+      return '<div class="parcela-row"><span class="pnum">'+c.mes+'</span><span class="pval tabular">'+fmtBRL(a.valorMensal)+'</span><span class="pvenc tabular">'+(c.pago?"Pago":"Pendente")+'</span></div>';
+    }).join("");
+    return '<div class="lv-domain-box" style="flex-direction:column;align-items:stretch;">'+
+      '<div class="lv-item"><label>Assinatura de manutenção</label><div class="val"><span class="chip '+info.status+'">'+ASSINATURA_LABEL[info.status]+'</span> '+fmtBRL(a.valorMensal)+'/mês · dia '+(a.diaCobranca||5)+' · '+info.mesesPagos+' mês(es) pago(s)</div></div>'+
+      '<button class="chip '+(cicloAtualPago?"ok":"soon")+'" data-toggle-assinatura-mes="1" style="align-self:flex-start;">'+(cicloAtualPago?"Mês atual pago ✓":"Marcar mês atual como pago")+'</button>'+
+      (rows ? '<div class="parcelas-list" style="margin-top:6px;">'+rows+'</div>' : '')+
+    '</div>';
+  }
   function openLeadViewModal(lead){
     var t = lead.temperatura||"morno";
     var tIcon = t==="quente"?"🔥":t==="frio"?"❄":"🌤";
@@ -1204,12 +1256,14 @@
       '</div>'+
       (dom.contratado ? '<div class="lv-domain-box"><div class="lv-item"><label>Domínio</label><div class="val"><span class="chip '+domainStatus(lead)+'">'+DOMAIN_STATUS_LABEL[domainStatus(lead)]+'</span></div></div><div class="lv-item"><label>Vencimento</label><div class="val">'+fmtDateShort(dom.vencimento)+'</div></div><div class="lv-item"><label>Pago por</label><div class="val">'+escapeHtml(dom.pagoPor||"—")+'</div></div></div>' : '')+
       parcelasViewHtml(lead)+
+      assinaturaViewHtml(lead)+
       '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-list" style="margin-top:8px;">'+timelineHtml(lead.atividades)+'</div></div>'+
-      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
+      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn" id="lv_termo">Gerar termo</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
       '</div></div>';
     document.getElementById("lv_close").addEventListener("click", closeModal);
     document.getElementById("lv_edit").addEventListener("click", function(){ openLeadModal(lead); });
+    document.getElementById("lv_termo").addEventListener("click", function(){ openTermoModal(lead); });
     modalLayer.querySelectorAll("[data-toggle-parcela]").forEach(function(btn){
       btn.addEventListener("click", function(){
         var ws = activeWs();
@@ -1226,6 +1280,86 @@
         renderSideStats(computeKpis()); renderCrm(); renderTicker();
       });
     });
+    var btnAssMes = modalLayer.querySelector("[data-toggle-assinatura-mes]");
+    if(btnAssMes){
+      btnAssMes.addEventListener("click", function(){
+        var ws = activeWs();
+        var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
+        if(!liveLead) return;
+        var a = liveLead.assinatura;
+        var mesAtual = mesAtualISO();
+        a.ciclos = a.ciclos || [];
+        var ciclo = a.ciclos.find(function(c){ return c.mes===mesAtual; });
+        if(!ciclo){ ciclo = { mes:mesAtual, pago:false, dataPagamento:"" }; a.ciclos.push(ciclo); }
+        ciclo.pago = !ciclo.pago;
+        ciclo.dataPagamento = ciclo.pago ? todayISO() : "";
+        pushLog(ws, (ciclo.pago?"Mensalidade "+mesAtual+" paga — ":"Mensalidade "+mesAtual+" reaberta — ")+liveLead.nome);
+        saveState();
+        lead.assinatura = liveLead.assinatura;
+        openLeadViewModal(lead);
+        renderSideStats(computeKpis()); renderCrm(); renderTicker();
+      });
+    }
+  }
+
+  // ---- Termo de entrega e responsabilidade ----
+  function gerarTextoTermo(lead){
+    var dom = lead.dominio || {contratado:false};
+    var ass = lead.assinatura || {ativa:false};
+    var linhas = [];
+    linhas.push("TERMO DE ENTREGA E RESPONSABILIDADE — WES TECH");
+    linhas.push("");
+    linhas.push("Cliente: " + (lead.nome || "—"));
+    linhas.push("Data: " + fmtDateShort(todayISO()));
+    linhas.push("");
+    linhas.push("1. Domínio");
+    if(dom.contratado){
+      linhas.push("O domínio do site está registrado na conta do próprio cliente" + (dom.pagoPor==="Eu" ? " (custo do 1º ano coberto pela Wes Tech como cortesia)." : ".") + " A partir da primeira renovação, o pagamento e a responsabilidade pela manutenção do domínio são do cliente. A Wes Tech não se responsabiliza por perda do domínio por falta de renovação.");
+    } else {
+      linhas.push("Este site ainda não possui domínio próprio registrado.");
+    }
+    linhas.push("");
+    linhas.push("2. Hospedagem");
+    linhas.push("O site é publicado em plataforma gratuita (sem custo de servidor repassado ao cliente). A Wes Tech garante a publicação, mas este serviço não conta com contrato formal de disponibilidade (SLA).");
+    linhas.push("");
+    linhas.push("3. Suporte e manutenção");
+    if(ass.ativa){
+      linhas.push("O cliente possui assinatura ativa de manutenção no valor de " + fmtBRL(ass.valorMensal) + "/mês, com cobrança todo dia " + (ass.diaCobranca||5) + ". Enquanto a assinatura estiver ativa e em dia, a Wes Tech realiza as atualizações e os ajustes solicitados pelo cliente.");
+    } else {
+      linhas.push("O cliente optou por não contratar a assinatura de manutenção. A partir da entrega, qualquer alteração futura no site é orçada separadamente, ou pode ser resolvida contratando a assinatura mensal a qualquer momento.");
+    }
+    linhas.push("");
+    linhas.push("Documento gerado automaticamente pelo painel Vértice — Wes Tech.");
+    return linhas.join("\n");
+  }
+  function openTermoModal(lead){
+    var texto = gerarTextoTermo(lead);
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal wide">'+
+      '<h3>Termo de entrega — '+escapeHtml(lead.nome)+'</h3>'+
+      '<textarea id="termoTexto" readonly style="width:100%;min-height:260px;font-family:var(--mono);font-size:11px;line-height:1.5;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);resize:vertical;">'+escapeHtml(texto)+'</textarea>'+
+      '<div class="modal-actions"><button class="btn" id="termo_close">Fechar</button><button class="btn" id="termo_baixar">Baixar .txt</button><button class="btn primary" id="termo_copiar">Copiar texto</button></div>'+
+      '</div></div>';
+    document.getElementById("termo_close").addEventListener("click", closeModal);
+    document.getElementById("termo_copiar").addEventListener("click", function(){
+      var btn = document.getElementById("termo_copiar");
+      var restaurar = function(){ btn.textContent = "Copiar texto"; };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(texto).then(function(){ btn.textContent = "Copiado ✓"; setTimeout(restaurar, 1800); });
+      } else {
+        document.getElementById("termoTexto").select();
+        document.execCommand("copy");
+        btn.textContent = "Copiado ✓"; setTimeout(restaurar, 1800);
+      }
+    });
+    document.getElementById("termo_baixar").addEventListener("click", function(){
+      var blob = new Blob([texto], {type:"text/plain;charset=utf-8"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "termo-"+(lead.nome||"cliente").toLowerCase().replace(/[^a-z0-9]+/g,"-")+".txt";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
   }
   function parcelasEditRowsHtml(parcelas){
     if(!parcelas.length) return '<div class="timeline-empty">Clique em "Gerar parcelas" pra criar as parcelas.</div>';
@@ -1240,9 +1374,10 @@
   }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]} };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]} };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
     var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
+    var assinatura = lead.assinatura || {ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]};
     var waHref = waLink(lead.whatsapp);
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal wide">'+
@@ -1258,12 +1393,20 @@
       '<div class="checkbox-row"><input type="checkbox" id="l_dom_on"'+(dom.contratado?" checked":"")+'><label for="l_dom_on" style="margin:0;">Cliente tem domínio contratado</label></div>'+
       '<div class="domain-sub" id="domainSub" style="display:'+(dom.contratado?"block":"none")+';">'+
         '<div class="field-row"><div class="field"><label>Vencimento</label><input id="l_dom_venc" type="date" value="'+(dom.vencimento||"")+'"></div>'+
-        '<div class="field"><label>Pago por</label><select id="l_dom_pago">'+PAGO_POR.map(function(p){return '<option'+(dom.pagoPor===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div></div>'+
+        '<div class="field"><label>Registrado na conta de</label><select id="l_dom_pago">'+PAGO_POR.map(function(p){return '<option'+(dom.pagoPor===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div></div>'+
+        '<div class="field-hint">Recomendado: sempre "Cliente" — assim a renovação a partir do 2º ano é responsabilidade dele, não da Wes Tech.</div>'+
       '</div>'+
       '<div class="checkbox-row"><input type="checkbox" id="l_parcelado"'+(pagamento.parcelado?" checked":"")+'><label for="l_parcelado" style="margin:0;">Cliente vai parcelar o pagamento</label></div>'+
       '<div class="domain-sub" id="parcelasSub" style="display:'+(pagamento.parcelado?"block":"none")+';">'+
         '<div class="field-row" style="align-items:flex-end;"><div class="field"><label>Nº de parcelas</label><input id="l_num_parcelas" type="number" min="2" max="24" value="'+(pagamento.parcelas.length||2)+'"></div><div class="field" style="flex:0 0 auto;"><button type="button" class="btn sm" id="l_gerar_parcelas">Gerar parcelas</button></div></div>'+
         '<div id="parcelasRowsList">'+parcelasEditRowsHtml(pagamento.parcelas)+'</div>'+
+      '</div>'+
+      '<div class="checkbox-row"><input type="checkbox" id="l_assinatura_on"'+(assinatura.ativa?" checked":"")+'><label for="l_assinatura_on" style="margin:0;">Cliente tem assinatura de manutenção</label></div>'+
+      '<div class="domain-sub" id="assinaturaSub" style="display:'+(assinatura.ativa?"block":"none")+';">'+
+        '<div class="field-row"><div class="field"><label>Valor mensal (R$)</label><input id="l_assinatura_valor" type="number" step="0.01" value="'+(assinatura.valorMensal||79)+'"></div>'+
+        '<div class="field"><label>Dia da cobrança</label><input id="l_assinatura_dia" type="number" min="1" max="28" value="'+(assinatura.diaCobranca||5)+'"></div></div>'+
+        '<div class="field"><label>Assinante desde</label><input id="l_assinatura_inicio" type="date" value="'+(assinatura.dataInicio||todayISO())+'"></div>'+
+        '<div class="field-hint">Isso é a manutenção/suporte contínuo — não é repasse de hospedagem (o site já é hospedado grátis).</div>'+
       '</div>'+
       '<div class="modal-actions">'+(editing?'<button class="danger-link" id="l_delete">Excluir</button>':'')+'<button class="btn" id="l_cancel">Cancelar</button><button class="btn primary" id="l_save">Salvar</button></div>'+
       (editing ? '<div class="timeline-section"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
@@ -1273,6 +1416,7 @@
     document.getElementById("l_cancel").addEventListener("click", closeModal);
     document.getElementById("l_dom_on").addEventListener("change", function(e){ document.getElementById("domainSub").style.display = e.target.checked ? "block":"none"; });
     document.getElementById("l_parcelado").addEventListener("change", function(e){ document.getElementById("parcelasSub").style.display = e.target.checked ? "block":"none"; });
+    document.getElementById("l_assinatura_on").addEventListener("change", function(e){ document.getElementById("assinaturaSub").style.display = e.target.checked ? "block":"none"; });
     document.getElementById("l_gerar_parcelas").addEventListener("click", function(){
       var n = Math.max(2, Math.min(24, parseInt(document.getElementById("l_num_parcelas").value)||2));
       var valorTotal = parseFloat(document.getElementById("l_valor").value)||0;
@@ -1345,6 +1489,7 @@
           });
         });
       }
+      var assinaturaOn = document.getElementById("l_assinatura_on").checked;
       var updated = {
         id: lead.id, nome:nome,
         nicho: document.getElementById("l_nicho").value.trim(),
@@ -1359,6 +1504,13 @@
         data: document.getElementById("l_data").value || todayISO(),
         dominio: { contratado: domOn, vencimento: domOn ? document.getElementById("l_dom_venc").value : "", pagoPor: domOn ? document.getElementById("l_dom_pago").value : "Eu" },
         pagamento: { parcelado: parceladoOn, parcelas: parcelas },
+        assinatura: {
+          ativa: assinaturaOn,
+          valorMensal: assinaturaOn ? (parseFloat(document.getElementById("l_assinatura_valor").value)||79) : (assinatura.valorMensal||79),
+          diaCobranca: assinaturaOn ? (parseInt(document.getElementById("l_assinatura_dia").value,10)||5) : (assinatura.diaCobranca||5),
+          dataInicio: assinaturaOn ? (document.getElementById("l_assinatura_inicio").value || todayISO()) : (assinatura.dataInicio||""),
+          ciclos: assinatura.ciclos || []
+        },
         atividades: lead.atividades || []
       };
       var ws = activeWs();
