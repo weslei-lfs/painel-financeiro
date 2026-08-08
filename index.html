@@ -463,6 +463,12 @@
             <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Cor de destaque do negócio</div>
             <div class="accent-slider"><input type="range" id="hueSlider" min="0" max="359" value="354"><div class="accent-preview" id="accentPreview"></div></div>
           </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Nossa empresa</div>
+            <div class="field"><label>Domínio</label><input id="empDominio" placeholder="networkspace.com.br"></div>
+            <div class="field-row"><div class="field"><label>Vencimento do domínio</label><input id="empVencimento" type="date"></div><div class="field"><label>E-mail profissional</label><input id="empEmail" type="email" placeholder="contato@networkspace.com.br"></div></div>
+            <button class="btn sm" id="btnSalvarEmpresa">Salvar dados da empresa</button>
+          </div>
           <div class="config-actions">
             <button class="btn sm" id="btnBackup">Backup (JSON)</button>
             <button class="btn sm" id="btnRestore">Restaurar</button>
@@ -619,11 +625,12 @@
       var v2raw = localStorage.getItem("painel-weslei-v2");
       if(v2raw){ var v2 = JSON.parse(v2raw); if(v2 && Array.isArray(v2.workspaces) && v2.workspaces.length) return migrateWorkspaces(v2); }
       var ws = newWorkspace("Sites sob Demanda");
-      return { activeId: ws.id, workspaces: [ws], themeId:"wes-tech" };
-    }catch(e){ var w = newWorkspace("Sites sob Demanda"); return { activeId: w.id, workspaces: [w], themeId:"wes-tech" }; }
+      return { activeId: ws.id, workspaces: [ws], themeId:"wes-tech", empresa:{dominio:"",vencimentoDominio:"",emailProfissional:""} };
+    }catch(e){ var w = newWorkspace("Sites sob Demanda"); return { activeId: w.id, workspaces: [w], themeId:"wes-tech", empresa:{dominio:"",vencimentoDominio:"",emailProfissional:""} }; }
   }
   function migrateWorkspaces(parsed){
     parsed.themeId = parsed.themeId || "wes-tech";
+    if(!parsed.empresa || typeof parsed.empresa !== "object") parsed.empresa = { dominio:"", vencimentoDominio:"", emailProfissional:"" };
     parsed.workspaces.forEach(function(ws){
       ws.activityLog = ws.activityLog || [];
       ws.tipo = ws.tipo || "agencia";
@@ -797,6 +804,15 @@
   /* ---------------- TICKER + SIDE STATS ---------------- */
   function renderTicker(){
     var ws = activeWs();
+    var empresaAlerts = [];
+    var emp = state.empresa;
+    if(emp && emp.dominio && emp.vencimentoDominio){
+      var dEmp = daysUntil(emp.vencimentoDominio);
+      if(dEmp!==null){
+        if(dEmp<0) empresaAlerts.push({ texto: "⚠ O domínio da nossa empresa ("+emp.dominio+") venceu há "+Math.abs(dEmp)+" dia(s) — renova AGORA", cls:"alert" });
+        else if(dEmp<=45) empresaAlerts.push({ texto: "O domínio da nossa empresa ("+emp.dominio+") vence em "+dEmp+" dia(s)", cls:"warn" });
+      }
+    }
     var alerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.dominio && l.dominio.contratado; }).map(function(l){
       var d = daysUntil(l.dominio.vencimento);
       if(d===null) return null;
@@ -830,7 +846,7 @@
       return null;
     }).filter(Boolean);
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
-    var items = alerts.concat(parcelaAlerts).concat(assinaturaAlerts).concat(stuckAlerts).concat(reuniaoAlerts).concat(normal);
+    var items = empresaAlerts.concat(alerts).concat(parcelaAlerts).concat(assinaturaAlerts).concat(stuckAlerts).concat(reuniaoAlerts).concat(normal);
     if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
@@ -1170,6 +1186,10 @@
     var ws = activeWs();
     document.getElementById("hueSlider").value = ws.hue;
     document.getElementById("accentPreview").style.background = "hsl("+ws.hue+" 82% 58%)";
+    var emp = state.empresa || {};
+    document.getElementById("empDominio").value = emp.dominio || "";
+    document.getElementById("empVencimento").value = emp.vencimentoDominio || "";
+    document.getElementById("empEmail").value = emp.emailProfissional || "";
     document.getElementById("themeGrid").innerHTML = THEME_ORDER.map(function(id){
       var t = THEMES[id];
       return '<button class="theme-swatch'+(state.themeId===id?" active":"")+'" data-theme-id="'+id+'" title="'+t.nome+'">'+
@@ -1880,6 +1900,18 @@
   function paintCmdkSel(){ document.querySelectorAll(".cmdk-item").forEach(function(n){ n.classList.toggle("sel", parseInt(n.getAttribute("data-idx"),10)===cmdkSelIndex); }); }
 
   /* ---------------- BACKUP / RESTORE / REPORT ---------------- */
+  document.getElementById("btnSalvarEmpresa").addEventListener("click", function(){
+    state.empresa = {
+      dominio: document.getElementById("empDominio").value.trim(),
+      vencimentoDominio: document.getElementById("empVencimento").value,
+      emailProfissional: document.getElementById("empEmail").value.trim()
+    };
+    saveState();
+    renderTicker();
+    var btn = document.getElementById("btnSalvarEmpresa");
+    var old = btn.textContent; btn.textContent = "Salvo ✓";
+    setTimeout(function(){ btn.textContent = old; }, 1500);
+  });
   document.getElementById("btnBackup").addEventListener("click", function(){
     var data = JSON.stringify(state, null, 2); var filename = "vertice-backup-" + todayISO() + ".json";
     if(window.claude && window.claude.downloads){ window.claude.downloads.save({ filename:filename, data:data }).catch(function(){ fallbackDownload(data, filename); }); }
