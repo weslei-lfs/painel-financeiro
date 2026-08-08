@@ -543,6 +543,12 @@
   function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function safeChart(){ return typeof Chart !== "undefined"; }
   function daysSince(iso){ if(!iso) return 0; var d=new Date(iso+"T00:00:00"); var diff = Math.floor((Date.now()-d.getTime())/86400000); return Math.max(0,diff); }
+  function diasParado(l){
+    var ultima = null;
+    (l.atividades||[]).forEach(function(a){ if(a.data && (!ultima || a.data>ultima)) ultima = a.data; });
+    var ref = ultima ? ultima.slice(0,10) : l.data;
+    return daysSince(ref);
+  }
   function daysUntil(iso){ if(!iso) return null; var d=new Date(iso+"T00:00:00"); return Math.ceil((d.getTime()-Date.now())/86400000); }
   function addDays(iso, n){ var d = new Date((iso||todayISO())+"T00:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
   function safeUrl(u){ if(!u) return ""; if(!/^https?:\/\//i.test(u)) return "https://"+u; return u; }
@@ -643,8 +649,9 @@
         if(!l.dominio || typeof l.dominio !== "object") l.dominio = { contratado:false, vencimento:"", pagoPor:"Eu" };
         if(!l.pagamento || typeof l.pagamento !== "object") l.pagamento = { parcelado:false, parcelas:[] };
         if(!Array.isArray(l.pagamento.parcelas)) l.pagamento.parcelas = [];
-        if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = { ativa:false, valorMensal:79, diaCobranca:5, dataInicio:"", ciclos:[] };
+        if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = { ativa:false, valorMensal:79, diaCobranca:5, dataInicio:"", dataCancelamento:"", ciclos:[] };
         if(!Array.isArray(l.assinatura.ciclos)) l.assinatura.ciclos = [];
+        if(typeof l.assinatura.dataCancelamento !== "string") l.assinatura.dataCancelamento = "";
         if(!Array.isArray(l.atividades)){
           l.atividades = [];
           if(l.notas){ l.atividades.push({ id: uid(), tipo:"Nota", texto: l.notas, data: (l.data? l.data+"T09:00:00":new Date().toISOString()) }); }
@@ -811,8 +818,14 @@
       if(info.status==="late") return { texto: "Assinatura de "+l.nome+" está atrasada — "+fmtBRL(l.assinatura.valorMensal), cls:"alert" };
       return null;
     }).filter(Boolean);
+    var stuckAlerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.stage!=="fechado" && l.stage!=="perdido"; }).map(function(l){
+      var d = diasParado(l);
+      if(d>=14) return { texto: l.nome+" está parado há "+d+" dias sem atividade — hora de um follow-up", cls:"alert" };
+      if(d>=7) return { texto: l.nome+" está parado há "+d+" dias sem atividade", cls:"warn" };
+      return null;
+    }).filter(Boolean);
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
-    var items = alerts.concat(parcelaAlerts).concat(assinaturaAlerts).concat(reuniaoAlerts).concat(normal);
+    var items = alerts.concat(parcelaAlerts).concat(assinaturaAlerts).concat(stuckAlerts).concat(reuniaoAlerts).concat(normal);
     if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
@@ -1509,6 +1522,7 @@
           valorMensal: assinaturaOn ? (parseFloat(document.getElementById("l_assinatura_valor").value)||79) : (assinatura.valorMensal||79),
           diaCobranca: assinaturaOn ? (parseInt(document.getElementById("l_assinatura_dia").value,10)||5) : (assinatura.diaCobranca||5),
           dataInicio: assinaturaOn ? (document.getElementById("l_assinatura_inicio").value || todayISO()) : (assinatura.dataInicio||""),
+          dataCancelamento: (!assinaturaOn && assinatura.ativa) ? todayISO() : (assinaturaOn ? "" : (assinatura.dataCancelamento||"")),
           ciclos: assinatura.ciclos || []
         },
         atividades: lead.atividades || []
@@ -1902,6 +1916,15 @@
       corpoTitulo = "Leads fechados ("+monthLeads.length+")";
       corpoHtml = monthLeads.length ? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhum lead fechado neste mês.</td></tr>';
     }
+    var mrrAtual = isDropship ? 0 : mrr(ws);
+    var canceladasMes = isDropship ? [] : ws.leads.filter(function(l){ return l.assinatura && !l.assinatura.ativa && l.assinatura.dataCancelamento && inThisMonth(l.assinatura.dataCancelamento); });
+    var mrrBlocoHtml = isDropship ? "" :
+      '<div style="display:flex;gap:24px;margin-bottom:28px;border-bottom:1px solid #ccc;padding-bottom:14px;">'+
+        '<div><div style="font-size:11px;color:#666;">MRR ATUAL</div><div style="font-size:20px;">'+fmtBRL(mrrAtual)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">ASSINATURAS CANCELADAS NO MÊS</div><div style="font-size:20px;">'+canceladasMes.length+'</div></div></div>'+
+      (canceladasMes.length ? '<h2 style="font-size:15px;">Cancelamentos do mês</h2><table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><tbody>'+
+        canceladasMes.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;text-align:right;">'+fmtDateShort(l.assinatura.dataCancelamento)+'</td></tr>';}).join("")+
+        '</tbody></table>' : '');
     var html = '<div style="font-family:Georgia,serif;max-width:720px;margin:40px auto;color:#1a1a1a;">'+
       '<h1 style="font-size:22px;margin:0 0 2px;">Relatório mensal — '+escapeHtml(ws.nome)+'</h1>'+
       '<div style="color:#666;font-size:13px;margin-bottom:24px;text-transform:capitalize;">'+monthLabel+'</div>'+
@@ -1909,6 +1932,7 @@
         '<div><div style="font-size:11px;color:#666;">RECEITA</div><div style="font-size:20px;">'+fmtBRL(receita)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">GASTOS</div><div style="font-size:20px;">'+fmtBRL(gastos)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">LUCRO</div><div style="font-size:20px;">'+fmtBRL(receita-gastos)+'</div></div></div>'+
+      mrrBlocoHtml+
       '<h2 style="font-size:15px;">'+corpoTitulo+'</h2>'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><tbody>'+
       corpoHtml+
