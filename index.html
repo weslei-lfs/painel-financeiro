@@ -71,11 +71,8 @@
 
   /* ================= SIDEBAR ================= */
   .sidebar{ flex:0 0 200px; background: var(--bg-1); border-right:1px solid var(--border); display:flex; flex-direction:column; min-height:0; position:relative; z-index:2; }
-  .side-logo{ display:flex; align-items:center; gap:9px; padding:16px 16px 14px; border-bottom:1px solid var(--border); }
-  .side-logo .glyph{ width:32px;height:32px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; filter: drop-shadow(0 0 6px rgba(79,184,255,.5)); }
-  .side-mark{ width:100%; height:100%; object-fit:contain; }
-  .side-logo .word{ font-weight:800; letter-spacing:1.5px; font-size:15px; }
-  .side-logo .word small{ display:block; font-weight:600; font-size:9px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; }
+  .side-logo{ display:flex; align-items:center; justify-content:center; padding:20px 14px 18px; border-bottom:1px solid var(--border); }
+  .side-mark{ width:100%; max-width:172px; height:auto; display:block; filter: drop-shadow(0 0 10px rgba(79,184,255,.3)); }
 
   .workspace-picker{ padding:12px 14px; border-bottom:1px solid var(--border); position:relative; }
   .workspace-btn{ width:100%; display:flex; align-items:center; gap:9px; background:var(--surface-2); border:1px solid var(--border); padding:8px 10px; text-align:left; border-radius:6px; }
@@ -344,10 +341,7 @@
 <div id="app">
   <aside class="sidebar">
     <div class="side-logo">
-      <div class="glyph">
-        <img src="logo-mark-dark.png" alt="Network Space" class="side-mark" id="sideMark">
-      </div>
-      <div class="word">VÉRTICE<small>Network Space — Agência de Sites</small></div>
+      <img src="logo-full-lockup-dark.png" alt="Network Space" class="side-mark" id="sideMark">
     </div>
 
     <div class="workspace-picker">
@@ -374,7 +368,7 @@
 
   <div class="main">
     <header class="topbar">
-      <div><h1 id="viewTitle">Terminal</h1><div class="crumbs" id="viewCrumb">CRM, domínios, financeiro e configurações — tudo em uma tela</div></div>
+      <div><h1 id="viewTitle">Dashboard</h1><div class="crumbs" id="viewCrumb">CRM, domínios, financeiro e configurações — tudo em uma tela</div></div>
       <div class="top-actions" id="topActions"></div>
     </header>
     <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
@@ -719,7 +713,7 @@
     if(typeof TEMP_COLOR !== "undefined"){ TEMP_COLOR.quente = t.danger; TEMP_COLOR.morno = t.warning; TEMP_COLOR.frio = frioColor; }
     // A marca (lobo prata) é clara-sobre-transparente ou escura-sobre-transparente;
     // troca pra sempre ter bom contraste com o fundo do tema ativo.
-    var markFile = t.modo==="light" ? "logo-mark-light.png" : "logo-mark-dark.png";
+    var markFile = t.modo==="light" ? "logo-full-lockup-light.png" : "logo-full-lockup-dark.png";
     var sideMark = document.getElementById("sideMark");
     if(sideMark) sideMark.src = markFile;
   }
