@@ -377,7 +377,7 @@
       <div class="panel z-crm">
         <div id="primaryAgencia">
           <div class="crm-toolbar">
-            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button></div>
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button></div>
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
@@ -400,6 +400,11 @@
           <div class="list-wrap" id="crmClientes" style="display:none">
             <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th><th>Assinatura</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
               <div class="empty-state" id="clientesEmpty" style="display:none"><div class="big">◆</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui.</p></div>
+            </div>
+          </div>
+          <div class="list-wrap" id="crmCadastro" style="display:none">
+            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>CPF/CNPJ</th><th>Site</th><th>E-mail profissional</th><th>Hospedagem</th><th></th></tr></thead><tbody id="crmCadastroRows"></tbody></table>
+              <div class="empty-state" id="cadastroEmpty" style="display:none"><div class="big">🗂</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui pra você preencher os dados cadastrais.</p></div>
             </div>
           </div>
         </div>
@@ -534,6 +539,7 @@
   var TEMP_COLOR = { quente:"#ff5470", morno:"#ffb648", frio:"#4d9eff" };
   var ACT_TYPES = ["Nota","Ligação","Mensagem","Reunião"];
   var PAGO_POR = ["Eu","Cliente"];
+  var HOSPEDAGEM_PROVEDOR = ["Vercel","Hostinger","GitHub Pages","Outro"];
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function todayISO(){ return new Date().toISOString().slice(0,10); }
@@ -653,6 +659,7 @@
         if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = { ativa:false, valorMensal:79, diaCobranca:5, dataInicio:"", dataCancelamento:"", ciclos:[] };
         if(!Array.isArray(l.assinatura.ciclos)) l.assinatura.ciclos = [];
         if(typeof l.assinatura.dataCancelamento !== "string") l.assinatura.dataCancelamento = "";
+        if(!l.cadastro || typeof l.cadastro !== "object") l.cadastro = { cpfCnpj:"", emailProfissional:"", hospedagemProvedor:"", hospedagemLogin:"", hospedagemSenha:"", repositorio:"", observacoes:"" };
         if(!Array.isArray(l.atividades)){
           l.atividades = [];
           if(l.notas){ l.atividades.push({ id: uid(), tipo:"Nota", texto: l.notas, data: (l.data? l.data+"T09:00:00":new Date().toISOString()) }); }
@@ -998,9 +1005,11 @@
       document.getElementById("crmRadar").style.display = crmTab==="radar" ? "flex":"none";
       document.getElementById("crmReunioes").style.display = crmTab==="reunioes" ? "flex":"none";
       document.getElementById("crmClientes").style.display = crmTab==="clientes" ? "flex":"none";
+      document.getElementById("crmCadastro").style.display = crmTab==="cadastro" ? "flex":"none";
       if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
       if(crmTab==="reunioes"){ renderReunioes(); }
       if(crmTab==="clientes"){ renderClientes(); }
+      if(crmTab==="cadastro"){ renderCadastro(); }
     });
   });
   document.getElementById("crmSearch").addEventListener("input", function(e){ crmSearchTerm = e.target.value.toLowerCase(); renderCrm(); });
@@ -1082,6 +1091,7 @@
     };
     if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
     if(crmTab==="clientes"){ renderClientes(); }
+    if(crmTab==="cadastro"){ renderCadastro(); }
   }
   function renderClientes(){
     var ws = activeWs();
@@ -1107,6 +1117,28 @@
       if(!cell) return;
       var l = ws.leads.find(function(x){return x.id===cell.getAttribute("data-view-cliente");});
       if(l) openLeadViewModal(l);
+    };
+  }
+  function renderCadastro(){
+    var ws = activeWs();
+    var clientes = ws.leads.filter(function(l){ return l.stage==="fechado"; }).filter(leadFilter)
+      .sort(function(a,b){ return (b.dataFechamento||b.data||"").localeCompare(a.dataFechamento||a.data||""); });
+    document.getElementById("cadastroEmpty").style.display = clientes.length ? "none":"flex";
+    document.getElementById("crmCadastroRows").innerHTML = clientes.map(function(l){
+      var c = l.cadastro || {};
+      var completo = !!(c.cpfCnpj && c.emailProfissional);
+      return '<tr><td class="name-cell" data-edit-cadastro="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div>'+(completo?'':'<div class="secondary">incompleto</div>')+'</td>'+
+        '<td>'+escapeHtml(c.cpfCnpj||"—")+'</td>'+
+        '<td>'+(l.site?'<a class="site-link" href="'+escapeHtml(safeUrl(l.site))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+escapeHtml(l.site)+'</a>':"—")+'</td>'+
+        '<td>'+escapeHtml(c.emailProfissional||"—")+'</td>'+
+        '<td>'+(c.hospedagemProvedor?'<span class="chip ok">'+escapeHtml(c.hospedagemProvedor)+'</span>':'<span class="chip none">—</span>')+'</td>'+
+        '<td><button class="icon-btn" data-edit-cadastro="'+l.id+'">✎</button></td></tr>';
+    }).join("");
+    document.getElementById("crmCadastroRows").onclick = function(e){
+      var cell = e.target.closest("[data-edit-cadastro]");
+      if(!cell) return;
+      var l = ws.leads.find(function(x){return x.id===cell.getAttribute("data-edit-cadastro");});
+      if(l) openCadastroModal(l);
     };
   }
   function kanbanCardHtml(l){
@@ -1291,10 +1323,11 @@
       assinaturaViewHtml(lead)+
       '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-list" style="margin-top:8px;">'+timelineHtml(lead.atividades)+'</div></div>'+
-      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn" id="lv_termo">Gerar termo</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
+      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn" id="lv_cadastro">Dados cadastrais</button><button class="btn" id="lv_termo">Gerar termo</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
       '</div></div>';
     document.getElementById("lv_close").addEventListener("click", closeModal);
     document.getElementById("lv_edit").addEventListener("click", function(){ openLeadModal(lead); });
+    document.getElementById("lv_cadastro").addEventListener("click", function(){ openCadastroModal(lead); });
     document.getElementById("lv_termo").addEventListener("click", function(){ openTermoModal(lead); });
     modalLayer.querySelectorAll("[data-toggle-parcela]").forEach(function(btn){
       btn.addEventListener("click", function(){
@@ -1338,10 +1371,14 @@
   function gerarTextoTermo(lead){
     var dom = lead.dominio || {contratado:false};
     var ass = lead.assinatura || {ativa:false};
+    var cad = lead.cadastro || {};
     var linhas = [];
     linhas.push("TERMO DE ENTREGA E RESPONSABILIDADE — NETWORK SPACE");
     linhas.push("");
     linhas.push("Cliente: " + (lead.nome || "—"));
+    if(cad.cpfCnpj) linhas.push("CPF/CNPJ: " + cad.cpfCnpj);
+    if(lead.site) linhas.push("Site entregue: " + lead.site);
+    if(cad.emailProfissional) linhas.push("E-mail profissional: " + cad.emailProfissional);
     linhas.push("Data: " + fmtDateShort(todayISO()));
     linhas.push("");
     linhas.push("1. Domínio");
@@ -1406,7 +1443,7 @@
   }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]} };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]}, cadastro:{cpfCnpj:"",emailProfissional:"",hospedagemProvedor:"",hospedagemLogin:"",hospedagemSenha:"",repositorio:"",observacoes:""} };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
     var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
     var assinatura = lead.assinatura || {ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]};
@@ -1544,6 +1581,7 @@
           dataCancelamento: (!assinaturaOn && assinatura.ativa) ? todayISO() : (assinaturaOn ? "" : (assinatura.dataCancelamento||"")),
           ciclos: assinatura.ciclos || []
         },
+        cadastro: lead.cadastro || {cpfCnpj:"",emailProfissional:"",hospedagemProvedor:"",hospedagemLogin:"",hospedagemSenha:"",repositorio:"",observacoes:""},
         atividades: lead.atividades || []
       };
       var ws = activeWs();
@@ -1551,6 +1589,41 @@
       var isNew = idx===-1;
       if(!isNew) ws.leads[idx]=updated; else ws.leads.push(updated);
       pushLog(ws, isNew ? ("Novo lead: "+nome) : (nome+" atualizado"));
+      saveState(); closeModal(); renderAll();
+    });
+  }
+  function openCadastroModal(lead){
+    var c = lead.cadastro || {cpfCnpj:"",emailProfissional:"",hospedagemProvedor:"",hospedagemLogin:"",hospedagemSenha:"",repositorio:"",observacoes:""};
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal wide">'+
+      '<h3>Dados cadastrais — '+escapeHtml(lead.nome)+'</h3>'+
+      '<div class="field-hint" style="margin-bottom:10px;">Essas informações alimentam o termo de entrega gerado no perfil do cliente. Guarde aqui pra nunca precisar pedir de novo.</div>'+
+      '<div class="field-row"><div class="field"><label>CPF ou CNPJ</label><input id="c_cpfcnpj" value="'+escapeHtml(c.cpfCnpj)+'" placeholder="000.000.000-00 ou 00.000.000/0001-00"></div>'+
+      '<div class="field"><label>E-mail profissional</label><input id="c_email" type="email" value="'+escapeHtml(c.emailProfissional)+'" placeholder="contato@clientedominio.com.br"></div></div>'+
+      '<div class="field"><label>Site entregue</label><input value="'+escapeHtml(lead.site||"")+'" disabled title="Editável na tela do lead"></div>'+
+      '<div class="field-row"><div class="field"><label>Hospedagem — provedor</label><select id="c_hosp_provedor">'+[""].concat(HOSPEDAGEM_PROVEDOR).map(function(p){return '<option value="'+p+'"'+(c.hospedagemProvedor===p?" selected":"")+'>'+(p||"— selecionar —")+'</option>';}).join("")+'</select></div>'+
+      '<div class="field"><label>Login / usuário</label><input id="c_hosp_login" value="'+escapeHtml(c.hospedagemLogin)+'" placeholder="e-mail de acesso"></div></div>'+
+      '<div class="field"><label>Senha</label><input id="c_hosp_senha" value="'+escapeHtml(c.hospedagemSenha)+'" placeholder="senha de acesso"></div>'+
+      '<div class="field-hint">Fica salvo só neste navegador, sem criptografia — evite reusar uma senha importante aqui. Se preferir mais segurança, anote apenas "salva no [seu gerenciador de senhas]" em vez da senha real.</div>'+
+      '<div class="field"><label>Repositório (GitHub, opcional)</label><input id="c_repo" value="'+escapeHtml(c.repositorio)+'" placeholder="github.com/..."></div>'+
+      '<div class="field"><label>Observações</label><textarea id="c_obs" rows="3" placeholder="Qualquer outra informação relevante">'+escapeHtml(c.observacoes)+'</textarea></div>'+
+      '<div class="modal-actions"><button class="btn" id="c_cancel">Cancelar</button><button class="btn primary" id="c_save">Salvar</button></div>'+
+      '</div></div>';
+    document.getElementById("c_cancel").addEventListener("click", closeModal);
+    document.getElementById("c_save").addEventListener("click", function(){
+      var ws = activeWs();
+      var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
+      if(!liveLead) return;
+      liveLead.cadastro = {
+        cpfCnpj: document.getElementById("c_cpfcnpj").value.trim(),
+        emailProfissional: document.getElementById("c_email").value.trim(),
+        hospedagemProvedor: document.getElementById("c_hosp_provedor").value,
+        hospedagemLogin: document.getElementById("c_hosp_login").value.trim(),
+        hospedagemSenha: document.getElementById("c_hosp_senha").value,
+        repositorio: document.getElementById("c_repo").value.trim(),
+        observacoes: document.getElementById("c_obs").value.trim()
+      };
+      pushLog(ws, "Dados cadastrais atualizados — "+liveLead.nome);
       saveState(); closeModal(); renderAll();
     });
   }
