@@ -1327,11 +1327,12 @@
       assinaturaViewHtml(lead)+
       '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-list" style="margin-top:8px;">'+timelineHtml(lead.atividades)+'</div></div>'+
-      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn" id="lv_cadastro">Dados cadastrais</button><button class="btn" id="lv_termo">Gerar termo</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
+      '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn" id="lv_cadastro">Dados cadastrais</button><button class="btn" id="lv_acesso">Dados de acesso</button><button class="btn" id="lv_termo">Gerar termo</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
       '</div></div>';
     document.getElementById("lv_close").addEventListener("click", closeModal);
     document.getElementById("lv_edit").addEventListener("click", function(){ openLeadModal(lead); });
     document.getElementById("lv_cadastro").addEventListener("click", function(){ openCadastroModal(lead); });
+    document.getElementById("lv_acesso").addEventListener("click", function(){ openAcessoModal(lead); });
     document.getElementById("lv_termo").addEventListener("click", function(){ openTermoModal(lead); });
     modalLayer.querySelectorAll("[data-toggle-parcela]").forEach(function(btn){
       btn.addEventListener("click", function(){
@@ -1430,6 +1431,73 @@
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url; a.download = "termo-"+(lead.nome||"cliente").toLowerCase().replace(/[^a-z0-9]+/g,"-")+".txt";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // ---- Ficha de acesso do cliente (site, domínio, hospedagem, logins) ----
+  function gerarTextoAcesso(lead){
+    var c = lead.cadastro || cadastroVazio();
+    var linhas = [];
+    linhas.push("DADOS DE ACESSO — " + (lead.nome || "—"));
+    linhas.push("Network Space · " + fmtDateShort(todayISO()));
+    linhas.push("");
+    linhas.push("Aqui estão os dados de acesso do seu site. Guarde num lugar seguro.");
+    linhas.push("");
+    if(lead.site){ linhas.push("SITE"); linhas.push(lead.site); linhas.push(""); }
+    if(c.dominioRegistrador || c.dominioLogin || c.dominioSenha){
+      linhas.push("DOMÍNIO" + (c.dominioRegistrador?" — "+c.dominioRegistrador:""));
+      if(c.dominioLogin) linhas.push("Login: " + c.dominioLogin);
+      if(c.dominioSenha) linhas.push("Senha: " + c.dominioSenha);
+      linhas.push("");
+    }
+    if(c.hospedagemProvedor || c.hospedagemLogin || c.hospedagemSenha){
+      linhas.push("HOSPEDAGEM" + (c.hospedagemProvedor?" — "+c.hospedagemProvedor:""));
+      if(c.hospedagemLogin) linhas.push("Login: " + c.hospedagemLogin);
+      if(c.hospedagemSenha) linhas.push("Senha: " + c.hospedagemSenha);
+      linhas.push("");
+    }
+    if(c.emailProfissional){ linhas.push("E-MAIL PROFISSIONAL"); linhas.push(c.emailProfissional); linhas.push(""); }
+    if(c.observacoes){ linhas.push("OBSERVAÇÕES"); linhas.push(c.observacoes); linhas.push(""); }
+    linhas.push("Qualquer dúvida, é só chamar a gente.");
+    linhas.push("Network Space — networkspace.com.br");
+    return linhas.join("\n");
+  }
+  function openAcessoModal(lead){
+    var texto = gerarTextoAcesso(lead);
+    var vazio = !lead.site && !(lead.cadastro && (lead.cadastro.dominioRegistrador||lead.cadastro.hospedagemProvedor||lead.cadastro.emailProfissional));
+    var waHref = lead.whatsapp ? (waLink(lead.whatsapp) + "?text=" + encodeURIComponent(texto)) : "";
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal wide">'+
+      '<h3>Dados de acesso — '+escapeHtml(lead.nome)+'</h3>'+
+      (vazio ? '<div class="field-hint" style="margin-bottom:10px;">Ainda não há site, domínio, hospedagem ou e-mail cadastrados pra esse cliente. Preencha em "Dados cadastrais" primeiro.</div>' : '')+
+      '<textarea id="acessoTexto" readonly style="width:100%;min-height:260px;font-family:var(--mono);font-size:11px;line-height:1.5;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);resize:vertical;">'+escapeHtml(texto)+'</textarea>'+
+      '<div class="field-hint">Esse texto leva senhas em claro — mande só pelo WhatsApp/canal que o próprio cliente usa, evite deixar em grupo ou lugar público.</div>'+
+      '<div class="modal-actions">'+
+        '<button class="btn" id="acesso_close">Fechar</button>'+
+        '<button class="btn" id="acesso_baixar">Baixar .txt</button>'+
+        '<button class="btn" id="acesso_copiar">Copiar texto</button>'+
+        (waHref ? '<a class="btn primary" href="'+waHref+'" target="_blank" rel="noopener">Enviar no WhatsApp</a>' : '<button class="btn primary" disabled title="Cadastre o WhatsApp do cliente">Enviar no WhatsApp</button>')+
+      '</div>'+
+      '</div></div>';
+    document.getElementById("acesso_close").addEventListener("click", closeModal);
+    document.getElementById("acesso_copiar").addEventListener("click", function(){
+      var btn = document.getElementById("acesso_copiar");
+      var restaurar = function(){ btn.textContent = "Copiar texto"; };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(texto).then(function(){ btn.textContent = "Copiado ✓"; setTimeout(restaurar, 1800); });
+      } else {
+        document.getElementById("acessoTexto").select();
+        document.execCommand("copy");
+        btn.textContent = "Copiado ✓"; setTimeout(restaurar, 1800);
+      }
+    });
+    document.getElementById("acesso_baixar").addEventListener("click", function(){
+      var blob = new Blob([texto], {type:"text/plain;charset=utf-8"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "acesso-"+(lead.nome||"cliente").toLowerCase().replace(/[^a-z0-9]+/g,"-")+".txt";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
@@ -1616,9 +1684,14 @@
       '<div class="field-hint">Domínio e hospedagem ficam salvos só neste navegador, sem criptografia — evite reusar uma senha importante aqui. Se preferir mais segurança, anote apenas "salva no [seu gerenciador de senhas]" em vez da senha real.</div>'+
       '<div class="field"><label>Repositório (GitHub, opcional)</label><input id="c_repo" value="'+escapeHtml(c.repositorio)+'" placeholder="github.com/..."></div>'+
       '<div class="field"><label>Observações</label><textarea id="c_obs" rows="3" placeholder="Qualquer outra informação relevante">'+escapeHtml(c.observacoes)+'</textarea></div>'+
-      '<div class="modal-actions"><button class="btn" id="c_cancel">Cancelar</button><button class="btn primary" id="c_save">Salvar</button></div>'+
+      '<div class="modal-actions"><button class="btn" id="c_cancel">Cancelar</button><button class="btn" id="c_acesso">Ver dados de acesso</button><button class="btn primary" id="c_save">Salvar</button></div>'+
       '</div></div>';
     document.getElementById("c_cancel").addEventListener("click", closeModal);
+    document.getElementById("c_acesso").addEventListener("click", function(){
+      var ws = activeWs();
+      var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
+      openAcessoModal(liveLead || lead);
+    });
     document.getElementById("c_save").addEventListener("click", function(){
       var ws = activeWs();
       var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
