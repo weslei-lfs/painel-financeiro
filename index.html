@@ -403,7 +403,7 @@
             </div>
           </div>
           <div class="list-wrap" id="crmCadastro" style="display:none">
-            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>CPF/CNPJ</th><th>Site</th><th>E-mail profissional</th><th>Hospedagem</th><th></th></tr></thead><tbody id="crmCadastroRows"></tbody></table>
+            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>CPF/CNPJ</th><th>Site</th><th>E-mail profissional</th><th>Domínio</th><th>Hospedagem</th><th></th></tr></thead><tbody id="crmCadastroRows"></tbody></table>
               <div class="empty-state" id="cadastroEmpty" style="display:none"><div class="big">🗂</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui pra você preencher os dados cadastrais.</p></div>
             </div>
           </div>
@@ -540,6 +540,8 @@
   var ACT_TYPES = ["Nota","Ligação","Mensagem","Reunião"];
   var PAGO_POR = ["Eu","Cliente"];
   var HOSPEDAGEM_PROVEDOR = ["Vercel","Hostinger","GitHub Pages","Outro"];
+  var REGISTRADOR_DOMINIO = ["Registro.br","Hostinger","GoDaddy","Namecheap","Outro"];
+  function cadastroVazio(){ return { cpfCnpj:"", emailProfissional:"", hospedagemProvedor:"", hospedagemLogin:"", hospedagemSenha:"", dominioRegistrador:"", dominioLogin:"", dominioSenha:"", repositorio:"", observacoes:"" }; }
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function todayISO(){ return new Date().toISOString().slice(0,10); }
@@ -659,7 +661,8 @@
         if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = { ativa:false, valorMensal:79, diaCobranca:5, dataInicio:"", dataCancelamento:"", ciclos:[] };
         if(!Array.isArray(l.assinatura.ciclos)) l.assinatura.ciclos = [];
         if(typeof l.assinatura.dataCancelamento !== "string") l.assinatura.dataCancelamento = "";
-        if(!l.cadastro || typeof l.cadastro !== "object") l.cadastro = { cpfCnpj:"", emailProfissional:"", hospedagemProvedor:"", hospedagemLogin:"", hospedagemSenha:"", repositorio:"", observacoes:"" };
+        if(!l.cadastro || typeof l.cadastro !== "object") l.cadastro = cadastroVazio();
+        else Object.keys(cadastroVazio()).forEach(function(k){ if(typeof l.cadastro[k] !== "string") l.cadastro[k] = ""; });
         if(!Array.isArray(l.atividades)){
           l.atividades = [];
           if(l.notas){ l.atividades.push({ id: uid(), tipo:"Nota", texto: l.notas, data: (l.data? l.data+"T09:00:00":new Date().toISOString()) }); }
@@ -1131,6 +1134,7 @@
         '<td>'+escapeHtml(c.cpfCnpj||"—")+'</td>'+
         '<td>'+(l.site?'<a class="site-link" href="'+escapeHtml(safeUrl(l.site))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+escapeHtml(l.site)+'</a>':"—")+'</td>'+
         '<td>'+escapeHtml(c.emailProfissional||"—")+'</td>'+
+        '<td>'+(c.dominioRegistrador?'<span class="chip ok">'+escapeHtml(c.dominioRegistrador)+'</span>':'<span class="chip none">—</span>')+'</td>'+
         '<td>'+(c.hospedagemProvedor?'<span class="chip ok">'+escapeHtml(c.hospedagemProvedor)+'</span>':'<span class="chip none">—</span>')+'</td>'+
         '<td><button class="icon-btn" data-edit-cadastro="'+l.id+'">✎</button></td></tr>';
     }).join("");
@@ -1443,7 +1447,7 @@
   }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]}, cadastro:{cpfCnpj:"",emailProfissional:"",hospedagemProvedor:"",hospedagemLogin:"",hospedagemSenha:"",repositorio:"",observacoes:""} };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]}, cadastro:cadastroVazio() };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
     var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
     var assinatura = lead.assinatura || {ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]};
@@ -1581,7 +1585,7 @@
           dataCancelamento: (!assinaturaOn && assinatura.ativa) ? todayISO() : (assinaturaOn ? "" : (assinatura.dataCancelamento||"")),
           ciclos: assinatura.ciclos || []
         },
-        cadastro: lead.cadastro || {cpfCnpj:"",emailProfissional:"",hospedagemProvedor:"",hospedagemLogin:"",hospedagemSenha:"",repositorio:"",observacoes:""},
+        cadastro: lead.cadastro || cadastroVazio(),
         atividades: lead.atividades || []
       };
       var ws = activeWs();
@@ -1593,7 +1597,7 @@
     });
   }
   function openCadastroModal(lead){
-    var c = lead.cadastro || {cpfCnpj:"",emailProfissional:"",hospedagemProvedor:"",hospedagemLogin:"",hospedagemSenha:"",repositorio:"",observacoes:""};
+    var c = lead.cadastro || cadastroVazio();
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal wide">'+
       '<h3>Dados cadastrais — '+escapeHtml(lead.nome)+'</h3>'+
@@ -1601,10 +1605,15 @@
       '<div class="field-row"><div class="field"><label>CPF ou CNPJ</label><input id="c_cpfcnpj" value="'+escapeHtml(c.cpfCnpj)+'" placeholder="000.000.000-00 ou 00.000.000/0001-00"></div>'+
       '<div class="field"><label>E-mail profissional</label><input id="c_email" type="email" value="'+escapeHtml(c.emailProfissional)+'" placeholder="contato@clientedominio.com.br"></div></div>'+
       '<div class="field"><label>Site entregue</label><input value="'+escapeHtml(lead.site||"")+'" disabled title="Editável na tela do lead"></div>'+
-      '<div class="field-row"><div class="field"><label>Hospedagem — provedor</label><select id="c_hosp_provedor">'+[""].concat(HOSPEDAGEM_PROVEDOR).map(function(p){return '<option value="'+p+'"'+(c.hospedagemProvedor===p?" selected":"")+'>'+(p||"— selecionar —")+'</option>';}).join("")+'</select></div>'+
+      '<label style="display:block;font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 6px;">Domínio — onde foi comprado</label>'+
+      '<div class="field-row"><div class="field"><label>Plataforma / registrador</label><select id="c_dom_registrador">'+[""].concat(REGISTRADOR_DOMINIO).map(function(p){return '<option value="'+p+'"'+(c.dominioRegistrador===p?" selected":"")+'>'+(p||"— selecionar —")+'</option>';}).join("")+'</select></div>'+
+      '<div class="field"><label>Login / usuário</label><input id="c_dom_login" value="'+escapeHtml(c.dominioLogin)+'" placeholder="e-mail de acesso"></div></div>'+
+      '<div class="field"><label>Senha</label><input id="c_dom_senha" value="'+escapeHtml(c.dominioSenha)+'" placeholder="senha de acesso"></div>'+
+      '<label style="display:block;font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 6px;">Hospedagem — onde o site está publicado</label>'+
+      '<div class="field-row"><div class="field"><label>Provedor</label><select id="c_hosp_provedor">'+[""].concat(HOSPEDAGEM_PROVEDOR).map(function(p){return '<option value="'+p+'"'+(c.hospedagemProvedor===p?" selected":"")+'>'+(p||"— selecionar —")+'</option>';}).join("")+'</select></div>'+
       '<div class="field"><label>Login / usuário</label><input id="c_hosp_login" value="'+escapeHtml(c.hospedagemLogin)+'" placeholder="e-mail de acesso"></div></div>'+
       '<div class="field"><label>Senha</label><input id="c_hosp_senha" value="'+escapeHtml(c.hospedagemSenha)+'" placeholder="senha de acesso"></div>'+
-      '<div class="field-hint">Fica salvo só neste navegador, sem criptografia — evite reusar uma senha importante aqui. Se preferir mais segurança, anote apenas "salva no [seu gerenciador de senhas]" em vez da senha real.</div>'+
+      '<div class="field-hint">Domínio e hospedagem ficam salvos só neste navegador, sem criptografia — evite reusar uma senha importante aqui. Se preferir mais segurança, anote apenas "salva no [seu gerenciador de senhas]" em vez da senha real.</div>'+
       '<div class="field"><label>Repositório (GitHub, opcional)</label><input id="c_repo" value="'+escapeHtml(c.repositorio)+'" placeholder="github.com/..."></div>'+
       '<div class="field"><label>Observações</label><textarea id="c_obs" rows="3" placeholder="Qualquer outra informação relevante">'+escapeHtml(c.observacoes)+'</textarea></div>'+
       '<div class="modal-actions"><button class="btn" id="c_cancel">Cancelar</button><button class="btn primary" id="c_save">Salvar</button></div>'+
@@ -1617,6 +1626,9 @@
       liveLead.cadastro = {
         cpfCnpj: document.getElementById("c_cpfcnpj").value.trim(),
         emailProfissional: document.getElementById("c_email").value.trim(),
+        dominioRegistrador: document.getElementById("c_dom_registrador").value,
+        dominioLogin: document.getElementById("c_dom_login").value.trim(),
+        dominioSenha: document.getElementById("c_dom_senha").value,
         hospedagemProvedor: document.getElementById("c_hosp_provedor").value,
         hospedagemLogin: document.getElementById("c_hosp_login").value.trim(),
         hospedagemSenha: document.getElementById("c_hosp_senha").value,
