@@ -385,6 +385,12 @@
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
+            <select id="servicoFilter" title="Filtrar por serviço" style="border:1px solid var(--border);background:var(--surface-2);padding:6px 8px;font-size:10.5px;color:var(--text);border-radius:7px;">
+              <option value="all">Todo serviço</option>
+              <option value="site">Criação de site</option>
+              <option value="social">Redes sociais & Tráfego</option>
+              <option value="ambos">Site + Redes sociais</option>
+            </select>
             <input id="crmSearch" placeholder="Buscar..." style="border:1px solid var(--border);background:var(--surface-2);padding:6px 10px;font-size:10.5px;flex:1 1 120px;min-width:90px;max-width:220px;color:var(--text);margin-left:auto;border-radius:7px;">
           </div>
           <div class="list-wrap" id="crmList" style="display:flex">
@@ -402,7 +408,7 @@
             <div class="reuniao-inline-body" id="reuniaoBody"></div>
           </div>
           <div class="list-wrap" id="crmClientes" style="display:none">
-            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th><th>Assinatura</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
+            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Serviço</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th><th>Assinatura</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
               <div class="empty-state" id="clientesEmpty" style="display:none"><div class="big">◆</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui.</p></div>
             </div>
           </div>
@@ -554,7 +560,10 @@
   var STAGE_LABEL = { novo:"Novo", contato:"Contato", previa:"Prévia", negociando:"Negociando", fechado:"Fechado", perdido:"Perdido" };
   var TEMP_LABEL = { quente:"🔥 Quente", morno:"🌤 Morno", frio:"❄ Frio" };
   var TEMP_COLOR = { quente:"#ff5470", morno:"#ffb648", frio:"#4d9eff" };
-  var ACT_TYPES = ["Nota","Ligação","Mensagem","Reunião"];
+  var ACT_TYPES = ["Nota","Ligação","Mensagem","Reunião","Roteiro","Gravação"];
+  var SERVICOS = ["site","social","ambos"];
+  var SERVICO_LABEL = { site:"Criação de site", social:"Redes sociais & Tráfego", ambos:"Site + Redes sociais" };
+  var SERVICO_COLOR = { site:"#4d9eff", social:"#ff5470", ambos:"#8a5cf0" };
   var PAGO_POR = ["Eu","Cliente"];
   var HOSPEDAGEM_PROVEDOR = ["Vercel","Hostinger","GitHub Pages","Outro"];
   var REGISTRADOR_DOMINIO = ["Registro.br","Hostinger","GoDaddy","Namecheap","Outro"];
@@ -671,6 +680,7 @@
       });
       (ws.leads||[]).forEach(function(l){
         if(!l.temperatura) l.temperatura = "morno";
+        if(SERVICOS.indexOf(l.servico)===-1) l.servico = "site";
         if(typeof l.site !== "string") l.site = "";
         if(typeof l.whatsapp !== "string") l.whatsapp = "";
         if(!l.dominio || typeof l.dominio !== "object") l.dominio = { contratado:false, vencimento:"", pagoPor:"Eu" };
@@ -1017,7 +1027,7 @@
   }
 
   /* ---------------- CRM ---------------- */
-  var crmTab = "lista"; var crmSearchTerm = ""; var crmTempFilter = "all";
+  var crmTab = "lista"; var crmSearchTerm = ""; var crmTempFilter = "all"; var crmServicoFilter = "all";
   document.querySelectorAll(".crm-tabs button").forEach(function(b){
     b.addEventListener("click", function(){
       crmTab = b.getAttribute("data-tab");
@@ -1038,6 +1048,10 @@
     var b = e.target.closest("button[data-temp]"); if(!b) return;
     crmTempFilter = b.getAttribute("data-temp");
     document.querySelectorAll("#tempFilter button").forEach(function(x){ x.classList.toggle("active", x===b); });
+    renderCrm();
+  });
+  document.getElementById("servicoFilter").addEventListener("change", function(e){
+    crmServicoFilter = e.target.value;
     renderCrm();
   });
 
@@ -1074,6 +1088,7 @@
 
   function leadFilter(l){
     if(crmTempFilter!=="all" && (l.temperatura||"morno")!==crmTempFilter) return false;
+    if(crmServicoFilter!=="all" && (l.servico||"site")!==crmServicoFilter) return false;
     if(!crmSearchTerm) return true;
     return (l.nome||"").toLowerCase().indexOf(crmSearchTerm)>-1 || (l.cidade||"").toLowerCase().indexOf(crmSearchTerm)>-1;
   }
@@ -1093,8 +1108,9 @@
     document.getElementById("crmListRows").innerHTML = list.map(function(l){
       var t = l.temperatura||"morno";
       var pag = pagamentoInfo(l);
+      var servico = l.servico||"site";
       return '<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+TEMP_COLOR[t]+'"></span></td>'+
-        '<td class="name-cell" data-view-lead="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div><div class="secondary">'+escapeHtml(l.cidade||"")+'</div></td>'+
+        '<td class="name-cell" data-view-lead="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div><div class="secondary">'+escapeHtml(l.cidade||"")+(servico!=="site"?' · <span style="color:'+SERVICO_COLOR[servico]+'">'+SERVICO_LABEL[servico]+'</span>':'')+'</div></td>'+
         '<td>'+escapeHtml(l.cidade||"—")+'</td>'+
         '<td><span class="chip '+l.stage+'">'+STAGE_LABEL[l.stage]+'</span></td>'+
         '<td class="num tabular">'+fmtBRL(l.valor)+'</td>'+
@@ -1125,7 +1141,9 @@
       var temSite = !!l.site;
       var temDominio = l.dominio && l.dominio.contratado;
       var waHref = waLink(l.whatsapp);
+      var servico = l.servico||"site";
       return '<tr><td class="name-cell" data-view-cliente="'+l.id+'"><div class="primary">'+escapeHtml(l.nome)+'</div></td>'+
+        '<td><span class="chip" style="background:'+SERVICO_COLOR[servico]+'22;color:'+SERVICO_COLOR[servico]+';">'+SERVICO_LABEL[servico]+'</span></td>'+
         '<td>'+escapeHtml(l.cidade||"—")+'</td>'+
         '<td>'+(waHref?'<a class="site-link" href="'+waHref+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+escapeHtml(l.whatsapp)+'</a>':"—")+'</td>'+
         '<td><span class="chip '+(temSite?"ok":"none")+'">'+(temSite?"Sim":"Não")+'</span></td>'+
@@ -1167,9 +1185,10 @@
     var t = l.temperatura||"morno";
     var tIcon = t==="quente"?"🔥":t==="frio"?"❄":"🌤";
     var waHref = waLink(l.whatsapp);
+    var servico = l.servico||"site";
     return '<div class="lead-card temp-'+t+'" draggable="true" data-lead-id="'+l.id+'">'+
       '<div class="top"><span>'+tIcon+'</span><span class="n">'+escapeHtml(l.nome)+'</span>'+(waHref?'<a href="'+waHref+'" target="_blank" rel="noopener" class="wa-quick" onclick="event.stopPropagation()" title="Abrir WhatsApp">💬</a>':'')+'</div>'+
-      '<div class="m">'+escapeHtml(l.cidade||"")+'</div>'+
+      '<div class="m">'+escapeHtml(l.cidade||"")+(servico!=="site"?' <span style="color:'+SERVICO_COLOR[servico]+';font-weight:700;">· '+SERVICO_LABEL[servico]+'</span>':'')+'</div>'+
       '<div class="bottom"><span class="v">'+fmtBRL(l.valor)+'</span><span class="days">'+daysSince(l.data)+'d</span></div></div>';
   }
   function bindKanbanEvents(){
@@ -1331,7 +1350,7 @@
       '<div class="modal-backdrop"><div class="modal wide">'+
       '<div class="lv-head">'+
         '<div><div class="lv-name">'+escapeHtml(lead.nome)+'</div><div class="lv-sub">'+escapeHtml(lead.nicho||"—")+(lead.cidade?" · "+escapeHtml(lead.cidade):"")+'</div></div>'+
-        '<div class="lv-chips"><span class="chip '+lead.stage+'">'+STAGE_LABEL[lead.stage]+'</span><span class="chip" style="background:var(--surface-3);color:var(--text-muted);">'+tIcon+' '+TEMP_LABEL[t].replace(/^\S+\s/,"")+'</span></div>'+
+        '<div class="lv-chips"><span class="chip '+lead.stage+'">'+STAGE_LABEL[lead.stage]+'</span><span class="chip" style="background:var(--surface-3);color:var(--text-muted);">'+tIcon+' '+TEMP_LABEL[t].replace(/^\S+\s/,"")+'</span><span class="chip" style="background:'+SERVICO_COLOR[lead.servico||"site"]+'22;color:'+SERVICO_COLOR[lead.servico||"site"]+';">'+SERVICO_LABEL[lead.servico||"site"]+'</span></div>'+
       '</div>'+
       '<div class="lv-grid">'+
         '<div class="lv-item"><label>Valor</label><div class="val">'+fmtBRL(lead.valor)+'</div></div>'+
@@ -1536,7 +1555,7 @@
   }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]}, cadastro:cadastroVazio() };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", servico:"site", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]}, cadastro:cadastroVazio() };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
     var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
     var assinatura = lead.assinatura || {ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]};
@@ -1545,6 +1564,7 @@
       '<div class="modal-backdrop"><div class="modal wide">'+
       '<h3>'+(editing?"Editar lead":"Novo lead")+'</h3>'+
       '<div class="field"><label>Nome / Negócio</label><input id="l_nome" value="'+escapeHtml(lead.nome)+'" placeholder="Ex: Clínica Odonto Ser"></div>'+
+      '<div class="field"><label>Serviço</label><select id="l_servico">'+SERVICOS.map(function(s){return '<option value="'+s+'"'+((lead.servico||"site")===s?" selected":"")+'>'+SERVICO_LABEL[s]+'</option>';}).join("")+'</select></div>'+
       '<div class="field-row"><div class="field"><label>Nicho</label><input id="l_nicho" value="'+escapeHtml(lead.nicho)+'"></div><div class="field"><label>Cidade</label><input id="l_cidade" value="'+escapeHtml(lead.cidade)+'"></div></div>'+
       '<div class="field-row"><div class="field"><label>WhatsApp'+(waHref?' <a href="'+waHref+'" target="_blank" rel="noopener" class="wa-quick">abrir ↗</a>':'')+'</label><input id="l_whatsapp" type="tel" value="'+escapeHtml(lead.whatsapp)+'" placeholder="18999999999"></div><div class="field"><label>Link do site entregue</label><input id="l_site" value="'+escapeHtml(lead.site)+'" placeholder="seusite.com.br"></div></div>'+
       '<div class="field-row"><div class="field"><label>Valor (R$)</label><input id="l_valor" type="number" step="0.01" value="'+lead.valor+'"></div><div class="field"><label>Etapa</label><select id="l_stage">'+STAGES.map(function(s){return '<option value="'+s+'"'+(lead.stage===s?" selected":"")+'>'+STAGE_LABEL[s]+'</option>';}).join("")+'</select></div></div>'+
@@ -1663,6 +1683,7 @@
         dataFechamento: dataFechamento,
         temperatura: tempInput ? tempInput.value : "morno",
         origem: document.getElementById("l_origem").value,
+        servico: document.getElementById("l_servico").value,
         data: document.getElementById("l_data").value || todayISO(),
         dominio: { contratado: domOn, vencimento: domOn ? document.getElementById("l_dom_venc").value : "", pagoPor: domOn ? document.getElementById("l_dom_pago").value : "Eu" },
         pagamento: { parcelado: parceladoOn, parcelas: parcelas },
