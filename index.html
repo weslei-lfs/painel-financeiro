@@ -381,7 +381,7 @@
       <div class="panel z-crm">
         <div id="primaryAgencia">
           <div class="crm-toolbar">
-            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button></div>
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button><button data-tab="cobrancas">Cobranças <span class="badge tabular" id="cobrancasBadge" style="display:none;">0</span></button></div>
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
@@ -415,6 +415,13 @@
           <div class="list-wrap" id="crmCadastro" style="display:none">
             <div class="panel-body"><table><thead><tr><th>Cliente</th><th>CPF/CNPJ</th><th>Site</th><th>E-mail profissional</th><th>Domínio</th><th>Hospedagem</th><th></th></tr></thead><tbody id="crmCadastroRows"></tbody></table>
               <div class="empty-state" id="cadastroEmpty" style="display:none"><div class="big">🗂</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui pra você preencher os dados cadastrais.</p></div>
+            </div>
+          </div>
+          <div class="list-wrap" id="crmCobrancas" style="display:none">
+            <div class="panel-body" style="display:flex;flex-direction:column;">
+              <div class="field-hint" id="cobrancasResumo" style="padding:10px 4px 4px;"></div>
+              <table><thead><tr><th>Cliente</th><th>Assinatura</th><th class="num">Valor/mês</th><th>Dia cobr.</th><th>Status</th><th></th></tr></thead><tbody id="crmCobrancasRows"></tbody></table>
+              <div class="empty-state" id="cobrancasEmpty" style="display:none"><div class="big">💳</div><p>Nenhuma assinatura ativa ainda. Marque "assinatura" no lead (manutenção do site ou redes sociais) pra ela aparecer aqui.</p></div>
             </div>
           </div>
         </div>
@@ -1049,10 +1056,12 @@
       document.getElementById("crmReunioes").style.display = crmTab==="reunioes" ? "flex":"none";
       document.getElementById("crmClientes").style.display = crmTab==="clientes" ? "flex":"none";
       document.getElementById("crmCadastro").style.display = crmTab==="cadastro" ? "flex":"none";
+      document.getElementById("crmCobrancas").style.display = crmTab==="cobrancas" ? "flex":"none";
       if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
       if(crmTab==="reunioes"){ renderReunioes(); }
       if(crmTab==="clientes"){ renderClientes(); }
       if(crmTab==="cadastro"){ renderCadastro(); }
+      if(crmTab==="cobrancas"){ renderCobrancas(); }
     });
   });
   document.getElementById("crmSearch").addEventListener("input", function(e){ crmSearchTerm = e.target.value.toLowerCase(); renderCrm(); });
@@ -1141,6 +1150,8 @@
     if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
     if(crmTab==="clientes"){ renderClientes(); }
     if(crmTab==="cadastro"){ renderCadastro(); }
+    if(crmTab==="cobrancas"){ renderCobrancas(); }
+    updateCobrancasBadge();
   }
   function renderClientes(){
     var ws = activeWs();
@@ -1194,6 +1205,58 @@
       var l = ws.leads.find(function(x){return x.id===cell.getAttribute("data-edit-cadastro");});
       if(l) openCadastroModal(l);
     };
+  }
+  var ASSINATURA_TIPOS = [["assinatura","Manutenção de site","#4d9eff"],["assinaturaSocial","Redes sociais & Tráfego","#ff5470"]];
+  var COBRANCA_ORDEM = { late:0, soon:1, ok:2, none:3 };
+  function renderCobrancas(){
+    var ws = activeWs();
+    var rows = [];
+    ws.leads.filter(leadFilter).forEach(function(l){
+      ASSINATURA_TIPOS.forEach(function(def){
+        var a = l[def[0]];
+        if(a && a.ativa) rows.push({ lead:l, key:def[0], label:def[1], color:def[2], a:a, info:assinaturaInfo(a) });
+      });
+    });
+    rows.sort(function(x,y){
+      var d = COBRANCA_ORDEM[x.info.status]-COBRANCA_ORDEM[y.info.status];
+      return d!==0 ? d : (x.lead.nome||"").localeCompare(y.lead.nome||"");
+    });
+    document.getElementById("cobrancasEmpty").style.display = rows.length ? "none":"flex";
+    var totalMes = rows.reduce(function(s,r){ return s+Number(r.a.valorMensal||0); },0);
+    var atrasadas = rows.filter(function(r){ return r.info.status==="late"; }).length;
+    document.getElementById("cobrancasResumo").textContent = rows.length ? (rows.length+" assinatura(s) ativa(s) · "+fmtBRL(totalMes)+"/mês no total"+(atrasadas?" · "+atrasadas+" atrasada(s)":"")) : "";
+    document.getElementById("crmCobrancasRows").innerHTML = rows.map(function(r){
+      var cicloAtualPago = r.info.cicloAtual && r.info.cicloAtual.pago;
+      return '<tr>'+
+        '<td class="name-cell"><div class="primary">'+escapeHtml(r.lead.nome)+'</div></td>'+
+        '<td><span style="color:'+r.color+';font-weight:700;">'+r.label+'</span></td>'+
+        '<td class="num tabular">'+fmtBRL(r.a.valorMensal)+'</td>'+
+        '<td class="tabular">dia '+(r.a.diaCobranca||5)+'</td>'+
+        '<td><span class="chip '+r.info.status+'">'+ASSINATURA_LABEL[r.info.status]+'</span></td>'+
+        '<td><button class="chip '+(cicloAtualPago?"ok":"soon")+'" data-cob-toggle="'+r.lead.id+'|'+r.key+'">'+(cicloAtualPago?"Pago ✓":"Marcar pago")+'</button></td>'+
+      '</tr>';
+    }).join("");
+    document.getElementById("crmCobrancasRows").onclick = function(e){
+      var btn = e.target.closest("[data-cob-toggle]");
+      if(!btn) return;
+      var parts = btn.getAttribute("data-cob-toggle").split("|");
+      toggleAssinaturaMes(parts[0], parts[1]);
+      renderCobrancas();
+    };
+  }
+  function updateCobrancasBadge(){
+    var ws = activeWs();
+    var badge = document.getElementById("cobrancasBadge");
+    if(ws.tipo==="dropshipping"){ badge.style.display="none"; return; }
+    var count = 0;
+    ws.leads.forEach(function(l){
+      ASSINATURA_TIPOS.forEach(function(def){
+        var a = l[def[0]];
+        if(a && a.ativa && assinaturaInfo(a).status==="late") count++;
+      });
+    });
+    badge.textContent = count;
+    badge.style.display = count>0 ? "inline":"none";
   }
   function kanbanCardHtml(l){
     var t = l.temperatura||"morno";
@@ -1407,23 +1470,28 @@
     modalLayer.querySelectorAll("[data-toggle-assinatura-mes]").forEach(function(btnAssMes){
       btnAssMes.addEventListener("click", function(){
         var key = btnAssMes.getAttribute("data-toggle-assinatura-mes");
+        toggleAssinaturaMes(lead.id, key);
         var ws = activeWs();
         var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
-        if(!liveLead) return;
-        var a = liveLead[key];
-        var mesAtual = mesAtualISO();
-        a.ciclos = a.ciclos || [];
-        var ciclo = a.ciclos.find(function(c){ return c.mes===mesAtual; });
-        if(!ciclo){ ciclo = { mes:mesAtual, pago:false, dataPagamento:"" }; a.ciclos.push(ciclo); }
-        ciclo.pago = !ciclo.pago;
-        ciclo.dataPagamento = ciclo.pago ? todayISO() : "";
-        pushLog(ws, (ciclo.pago?"Mensalidade "+mesAtual+" paga — ":"Mensalidade "+mesAtual+" reaberta — ")+liveLead.nome);
-        saveState();
-        lead[key] = liveLead[key];
+        if(liveLead) lead[key] = liveLead[key];
         openLeadViewModal(lead);
-        renderSideStats(computeKpis()); renderCrm(); renderTicker();
       });
     });
+  }
+  function toggleAssinaturaMes(leadId, key){
+    var ws = activeWs();
+    var liveLead = ws.leads.find(function(x){return x.id===leadId;});
+    if(!liveLead) return;
+    var a = liveLead[key];
+    var mesAtual = mesAtualISO();
+    a.ciclos = a.ciclos || [];
+    var ciclo = a.ciclos.find(function(c){ return c.mes===mesAtual; });
+    if(!ciclo){ ciclo = { mes:mesAtual, pago:false, dataPagamento:"" }; a.ciclos.push(ciclo); }
+    ciclo.pago = !ciclo.pago;
+    ciclo.dataPagamento = ciclo.pago ? todayISO() : "";
+    pushLog(ws, (ciclo.pago?"Mensalidade "+mesAtual+" paga — ":"Mensalidade "+mesAtual+" reaberta — ")+liveLead.nome);
+    saveState();
+    renderSideStats(computeKpis()); renderCrm(); renderTicker();
   }
 
   // ---- Termo de entrega e responsabilidade ----
