@@ -270,6 +270,10 @@
   .danger-link{ color:var(--danger); background:none; border:none; font-size:11px; font-weight:700; margin-right:auto; }
   .domain-sub{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:10px; margin-top:-4px; margin-bottom:12px; }
   .field-hint{ font-size:10.5px; color:var(--text-faint); line-height:1.4; margin-top:4px; }
+  .cat-row{ display:flex; align-items:center; gap:8px; padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); }
+  .cat-row .dot{ width:8px;height:8px;border-radius:50%;flex:0 0 auto; }
+  .cat-row .cat-name{ font-size:12.5px; font-weight:600; flex:1 1 auto; }
+  .cat-row .cat-tag{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px; }
 
   /* -------- lead / client view (read-only profile) -------- */
   .name-cell{ cursor:pointer; }
@@ -440,7 +444,7 @@
       </div>
 
       <div class="panel z-finance">
-        <div class="panel-head"><h2>Financeiro</h2><button class="btn sm" id="btnNewExpense">+ Gasto</button></div>
+        <div class="panel-head"><h2>Financeiro</h2><button class="btn sm" id="btnManageCats">Categorias</button><button class="btn sm" id="btnNewExpense">+ Gasto</button></div>
         <div class="panel-body" style="display:flex;flex-direction:column;">
           <div style="display:flex;gap:10px;padding:8px 10px;flex:0 0 auto;">
             <div style="width:70px;height:70px;position:relative;flex:0 0 auto;"><canvas id="donutChart"></canvas><div class="empty-mini" id="donutEmpty" style="display:none;font-size:9px;">Sem gastos.</div></div>
@@ -522,12 +526,25 @@
 (function(){
   "use strict";
   var STORAGE_KEY = "painel-weslei-v3";
-  var EXPENSE_CATS_AGENCIA = ["Tráfego pago (Ads)", "Ferramentas de IA", "Domínio / Hospedagem", "Outros"];
-  var CAT_COLORS_AGENCIA = { "Tráfego pago (Ads)": "#ff5470", "Ferramentas de IA": "#4d9eff", "Domínio / Hospedagem": "#ffb648", "Outros": "#7a86a3" };
-  var EXPENSE_CATS_DROPSHIP = ["Ads", "Fornecedor / Produto", "Plataforma / Taxas", "Frete", "Outros"];
-  var CAT_COLORS_DROPSHIP = { "Ads": "#ff5470", "Fornecedor / Produto": "#ffb648", "Plataforma / Taxas": "#4d9eff", "Frete": "#8a5cf0", "Outros": "#7a86a3" };
-  function expenseCats(){ return activeWs().tipo==="dropshipping" ? EXPENSE_CATS_DROPSHIP : EXPENSE_CATS_AGENCIA; }
+  var EXPENSE_CATS_AGENCIA = ["Tráfego pago (Ads)", "Ferramentas de IA", "Domínio / Hospedagem", "Equipamentos", "Combustível", "Outros"];
+  var CAT_COLORS_AGENCIA = { "Tráfego pago (Ads)": "#ff5470", "Ferramentas de IA": "#4d9eff", "Domínio / Hospedagem": "#ffb648", "Equipamentos": "#2fd480", "Combustível": "#e0c34e", "Outros": "#7a86a3" };
+  var EXPENSE_CATS_DROPSHIP = ["Ads", "Fornecedor / Produto", "Plataforma / Taxas", "Frete", "Equipamentos", "Combustível", "Outros"];
+  var CAT_COLORS_DROPSHIP = { "Ads": "#ff5470", "Fornecedor / Produto": "#ffb648", "Plataforma / Taxas": "#4d9eff", "Frete": "#8a5cf0", "Equipamentos": "#2fd480", "Combustível": "#e0c34e", "Outros": "#7a86a3" };
+  var CAT_COLOR_FALLBACK_PALETTE = ["#ff5470","#4d9eff","#ffb648","#8a5cf0","#2fd480","#e0c34e","#ff8a3d","#4ecbe0"];
+  function baseExpenseCats(){ return activeWs().tipo==="dropshipping" ? EXPENSE_CATS_DROPSHIP : EXPENSE_CATS_AGENCIA; }
+  function expenseCats(){
+    var base = baseExpenseCats().slice();
+    var extra = (activeWs().categoriasExtra||[]).filter(function(c){ return base.indexOf(c)===-1; });
+    return base.slice(0,-1).concat(extra, base.slice(-1));
+  }
   function catColors(){ return activeWs().tipo==="dropshipping" ? CAT_COLORS_DROPSHIP : CAT_COLORS_AGENCIA; }
+  function catColor(cat){
+    var known = catColors()[cat];
+    if(known) return known;
+    var extra = activeWs().categoriasExtra||[];
+    var idx = extra.indexOf(cat);
+    return CAT_COLOR_FALLBACK_PALETTE[(idx<0?0:idx) % CAT_COLOR_FALLBACK_PALETTE.length];
+  }
   var PRODUTO_STATUS = ["testando","escalando","pausado"];
   var PRODUTO_STATUS_LABEL = { testando:"Testando", escalando:"Escalando", pausado:"Pausado" };
   var PRODUTO_STATUS_COLOR = { testando:"#ffb648", escalando:"#2fd480", pausado:"#7a86a3" };
@@ -613,7 +630,7 @@
     return ws.leads.filter(function(l){ return l.assinatura && l.assinatura.ativa; }).reduce(function(s,l){ return s+Number(l.assinatura.valorMensal||0); },0);
   }
 
-  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 207, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [] }; }
+  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 207, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [], categoriasExtra: [] }; }
   function pushLog(ws, texto){
     ws.activityLog = ws.activityLog || [];
     ws.activityLog.unshift({ id: uid(), texto: texto, data: new Date().toISOString() });
@@ -641,6 +658,7 @@
       ws.produtos = ws.produtos || [];
       ws.vendas = ws.vendas || [];
       ws.reunioes = ws.reunioes || [];
+      if(!Array.isArray(ws.categoriasExtra)) ws.categoriasExtra = [];
       ws.reunioes.forEach(function(r){
         if(!r.status) r.status = "agendada";
         if(typeof r.hora !== "string") r.hora = "";
@@ -934,7 +952,7 @@
     var el = document.getElementById("donutEmpty");
     if(!safeChart()){ el.style.display="flex"; el.textContent="—"; document.getElementById("donutLegend").innerHTML=""; return; }
     var ws = activeWs();
-    var cats = expenseCats(); var colors = catColors();
+    var cats = expenseCats();
     var totals = cats.map(function(c){ return ws.expenses.filter(function(e){return e.categoria===c;}).reduce(function(s,e){return s+Number(e.valor||0);},0); });
     var total = totals.reduce(function(a,b){return a+b;},0);
     el.style.display = total>0?"none":"flex";
@@ -942,8 +960,8 @@
     var ctx = donutCanvasEl.getContext("2d");
     if(donutChart) donutChart.destroy();
     var donutStale = Chart.getChart(donutCanvasEl); if(donutStale) donutStale.destroy();
-    donutChart = new Chart(ctx, { type:"doughnut", data:{ labels:cats, datasets:[{ data:totals, backgroundColor:cats.map(function(c){return colors[c];}), borderWidth:0 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:"66%", plugins:{legend:{display:false}} } });
-    document.getElementById("donutLegend").innerHTML = cats.map(function(c,i){ return '<div><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+colors[c]+';margin-right:4px;"></span>'+fmtBRL(totals[i])+'</div>'; }).join("");
+    donutChart = new Chart(ctx, { type:"doughnut", data:{ labels:cats, datasets:[{ data:totals, backgroundColor:cats.map(catColor), borderWidth:0 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:"66%", plugins:{legend:{display:false}} } });
+    document.getElementById("donutLegend").innerHTML = cats.map(function(c,i){ return '<div><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+catColor(c)+';margin-right:4px;"></span>'+fmtBRL(totals[i])+'</div>'; }).join("");
   }
   function renderRadar(){
     var el = document.getElementById("radarEmpty");
@@ -1210,6 +1228,7 @@
     try{ renderDonut(); }catch(e){ console.error("donut falhou", e); }
   }
   document.getElementById("btnNewExpense").addEventListener("click", openExpenseModal);
+  document.getElementById("btnManageCats").addEventListener("click", openCategoriaModal);
 
   /* ---------------- CONFIG ---------------- */
   function renderConfig(){
@@ -1728,6 +1747,56 @@
       if(valor<=0){ document.getElementById("e_valor").focus(); return; }
       exp.categoria = document.getElementById("e_cat").value; exp.descricao = document.getElementById("e_desc").value.trim(); exp.valor = valor; exp.data = document.getElementById("e_data").value || todayISO();
       ws.expenses.push(exp); pushLog(ws, "Gasto: "+fmtBRL(valor)+" em "+exp.categoria); saveState(); closeModal(); renderAll();
+    });
+  }
+  function openCategoriaModal(){
+    var ws = activeWs();
+    var base = baseExpenseCats();
+    var extra = ws.categoriasExtra||[];
+    function linhasHtml(){
+      var fixas = base.map(function(c){ return '<div class="cat-row"><span class="dot" style="background:'+catColor(c)+'"></span><span class="cat-name">'+escapeHtml(c)+'</span><span class="cat-tag">padrão</span></div>'; }).join("");
+      var extras = extra.map(function(c){ return '<div class="cat-row"><span class="dot" style="background:'+catColor(c)+'"></span><span class="cat-name">'+escapeHtml(c)+'</span><button class="icon-btn" data-del-cat="'+escapeHtml(c)+'">✕</button></div>'; }).join("");
+      return fixas + extras;
+    }
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal">'+
+      '<h3>Categorias de gasto</h3>'+
+      '<div class="field-hint" style="margin-bottom:10px;">As categorias padrão não podem ser removidas. As que você adicionar aqui aparecem direto na hora de lançar um gasto.</div>'+
+      '<div id="catList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">'+linhasHtml()+'</div>'+
+      '<div class="field-row" style="align-items:flex-end;"><div class="field"><label>Nova categoria</label><input id="cat_novo" placeholder="Ex: Manutenção de equipamento"></div><div class="field" style="flex:0 0 auto;"><button type="button" class="btn sm" id="cat_add">Adicionar</button></div></div>'+
+      '<div class="modal-actions"><button class="btn primary" id="cat_close">Fechar</button></div>'+
+      '</div></div>';
+    document.getElementById("cat_close").addEventListener("click", closeModal);
+    function bindDelButtons(){
+      modalLayer.querySelectorAll("[data-del-cat]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var cat = btn.getAttribute("data-del-cat");
+          var emUso = ws.expenses.some(function(e){ return e.categoria===cat; });
+          if(emUso){ alert('Essa categoria tem gasto lançado nela — não dá pra remover sem perder o histórico do gráfico. Você pode deixar de usá-la daqui pra frente, mas ela some da lista sem apagar os gastos já lançados.'); }
+          ws.categoriasExtra = extra.filter(function(c){ return c!==cat; });
+          extra = ws.categoriasExtra;
+          saveState();
+          document.getElementById("catList").innerHTML = linhasHtml();
+          bindDelButtons();
+          renderAll();
+        });
+      });
+    }
+    bindDelButtons();
+    document.getElementById("cat_add").addEventListener("click", function(){
+      var input = document.getElementById("cat_novo");
+      var nome = input.value.trim();
+      if(!nome){ input.focus(); return; }
+      var todas = base.concat(extra);
+      if(todas.some(function(c){ return c.toLowerCase()===nome.toLowerCase(); })){ alert("Essa categoria já existe."); return; }
+      extra.push(nome);
+      ws.categoriasExtra = extra;
+      pushLog(ws, "Nova categoria de gasto: "+nome);
+      saveState();
+      input.value = "";
+      document.getElementById("catList").innerHTML = linhasHtml();
+      bindDelButtons();
+      renderAll();
     });
   }
 
