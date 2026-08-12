@@ -408,7 +408,7 @@
             <div class="reuniao-inline-body" id="reuniaoBody"></div>
           </div>
           <div class="list-wrap" id="crmClientes" style="display:none">
-            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Serviço</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th><th>Assinatura</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
+            <div class="panel-body"><table><thead><tr><th>Cliente</th><th>Serviço</th><th>Cidade</th><th>WhatsApp</th><th>Site</th><th>Domínio</th><th>Pagamento</th><th>Assin. site</th><th>Assin. social</th></tr></thead><tbody id="crmClientesRows"></tbody></table>
               <div class="empty-state" id="clientesEmpty" style="display:none"><div class="big">◆</div><p>Nenhum cliente fechado ainda. Assim que um lead for movido pra "Fechado" no pipeline, ele aparece aqui.</p></div>
             </div>
           </div>
@@ -619,8 +619,7 @@
 
   // ---- Assinatura de manutenção (receita recorrente) ----
   function mesAtualISO(){ var d = new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
-  function assinaturaInfo(l){
-    var a = l.assinatura;
+  function assinaturaInfo(a){
     if(!a || !a.ativa) return { status:"none", cicloAtual:null, mesesPagos:0, totalMeses:0, mesAtual:mesAtualISO() };
     var mesAtual = mesAtualISO();
     var ciclos = a.ciclos || [];
@@ -636,8 +635,13 @@
   }
   var ASSINATURA_LABEL = { ok:"Em dia", late:"Atrasada", soon:"Ativa", none:"Sem assinatura" };
   function mrr(ws){
-    return ws.leads.filter(function(l){ return l.assinatura && l.assinatura.ativa; }).reduce(function(s,l){ return s+Number(l.assinatura.valorMensal||0); },0);
+    return ws.leads.reduce(function(s,l){
+      var site = (l.assinatura && l.assinatura.ativa) ? Number(l.assinatura.valorMensal||0) : 0;
+      var social = (l.assinaturaSocial && l.assinaturaSocial.ativa) ? Number(l.assinaturaSocial.valorMensal||0) : 0;
+      return s+site+social;
+    },0);
   }
+  function assinaturaVazia(valorPadrao){ return { ativa:false, valorMensal:valorPadrao||0, diaCobranca:5, dataInicio:"", dataCancelamento:"", ciclos:[] }; }
 
   function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 207, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [], categoriasExtra: [] }; }
   function pushLog(ws, texto){
@@ -686,9 +690,12 @@
         if(!l.dominio || typeof l.dominio !== "object") l.dominio = { contratado:false, vencimento:"", pagoPor:"Eu" };
         if(!l.pagamento || typeof l.pagamento !== "object") l.pagamento = { parcelado:false, parcelas:[] };
         if(!Array.isArray(l.pagamento.parcelas)) l.pagamento.parcelas = [];
-        if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = { ativa:false, valorMensal:79, diaCobranca:5, dataInicio:"", dataCancelamento:"", ciclos:[] };
+        if(!l.assinatura || typeof l.assinatura !== "object") l.assinatura = assinaturaVazia(79);
         if(!Array.isArray(l.assinatura.ciclos)) l.assinatura.ciclos = [];
         if(typeof l.assinatura.dataCancelamento !== "string") l.assinatura.dataCancelamento = "";
+        if(!l.assinaturaSocial || typeof l.assinaturaSocial !== "object") l.assinaturaSocial = assinaturaVazia(0);
+        if(!Array.isArray(l.assinaturaSocial.ciclos)) l.assinaturaSocial.ciclos = [];
+        if(typeof l.assinaturaSocial.dataCancelamento !== "string") l.assinaturaSocial.dataCancelamento = "";
         if(!l.cadastro || typeof l.cadastro !== "object") l.cadastro = cadastroVazio();
         else Object.keys(cadastroVazio()).forEach(function(k){ if(typeof l.cadastro[k] !== "string") l.cadastro[k] = ""; });
         if(!Array.isArray(l.atividades)){
@@ -867,8 +874,13 @@
       return acc;
     }, []);
     var assinaturaAlerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.assinatura && l.assinatura.ativa; }).map(function(l){
-      var info = assinaturaInfo(l);
-      if(info.status==="late") return { texto: "Assinatura de "+l.nome+" está atrasada — "+fmtBRL(l.assinatura.valorMensal), cls:"alert" };
+      var info = assinaturaInfo(l.assinatura);
+      if(info.status==="late") return { texto: "Assinatura de manutenção de "+l.nome+" está atrasada — "+fmtBRL(l.assinatura.valorMensal), cls:"alert" };
+      return null;
+    }).filter(Boolean);
+    var socialAlerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.assinaturaSocial && l.assinaturaSocial.ativa; }).map(function(l){
+      var info = assinaturaInfo(l.assinaturaSocial);
+      if(info.status==="late") return { texto: "Assinatura de redes sociais de "+l.nome+" está atrasada — "+fmtBRL(l.assinaturaSocial.valorMensal), cls:"alert" };
       return null;
     }).filter(Boolean);
     var stuckAlerts = ws.tipo==="dropshipping" ? [] : ws.leads.filter(function(l){ return l.stage!=="fechado" && l.stage!=="perdido"; }).map(function(l){
@@ -878,7 +890,7 @@
       return null;
     }).filter(Boolean);
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
-    var items = empresaAlerts.concat(alerts).concat(parcelaAlerts).concat(assinaturaAlerts).concat(stuckAlerts).concat(reuniaoAlerts).concat(normal);
+    var items = empresaAlerts.concat(alerts).concat(parcelaAlerts).concat(assinaturaAlerts).concat(socialAlerts).concat(stuckAlerts).concat(reuniaoAlerts).concat(normal);
     if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
@@ -1137,7 +1149,8 @@
     document.getElementById("clientesEmpty").style.display = clientes.length ? "none":"flex";
     document.getElementById("crmClientesRows").innerHTML = clientes.map(function(l){
       var pag = pagamentoInfo(l);
-      var ass = assinaturaInfo(l);
+      var ass = assinaturaInfo(l.assinatura);
+      var assSocial = assinaturaInfo(l.assinaturaSocial);
       var temSite = !!l.site;
       var temDominio = l.dominio && l.dominio.contratado;
       var waHref = waLink(l.whatsapp);
@@ -1149,7 +1162,8 @@
         '<td><span class="chip '+(temSite?"ok":"none")+'">'+(temSite?"Sim":"Não")+'</span></td>'+
         '<td><span class="chip '+(temDominio?"ok":"none")+'">'+(temDominio?"Sim":"Não")+'</span></td>'+
         '<td><span class="chip '+pag.status+'">'+PARCELAMENTO_LABEL[pag.status]+'</span>'+(pag.total?' <span class="chip-note">'+pag.pagas+"/"+pag.total+'</span>':'')+'</td>'+
-        '<td><span class="chip '+ass.status+'">'+ASSINATURA_LABEL[ass.status]+'</span></td></tr>';
+        '<td><span class="chip '+ass.status+'">'+ASSINATURA_LABEL[ass.status]+'</span></td>'+
+        '<td><span class="chip '+assSocial.status+'">'+ASSINATURA_LABEL[assSocial.status]+'</span></td></tr>';
     }).join("");
     document.getElementById("crmClientesRows").onclick = function(e){
       var cell = e.target.closest("[data-view-cliente]");
@@ -1326,18 +1340,17 @@
       '<div class="lv-item"><label>Parcelamento</label><div class="val">'+pag.pagas+' de '+pag.total+' parcelas pagas'+(pag.aReceber>0?' · falta receber '+fmtBRL(pag.aReceber):'')+'</div></div>'+
       '<div class="parcelas-list">'+rows+'</div></div>';
   }
-  function assinaturaViewHtml(lead){
-    var a = lead.assinatura;
+  function assinaturaViewHtml(a, label, key){
     if(!a || !a.ativa) return '';
-    var info = assinaturaInfo(lead);
+    var info = assinaturaInfo(a);
     var cicloAtualPago = info.cicloAtual && info.cicloAtual.pago;
     var historico = (a.ciclos||[]).slice().sort(function(x,y){ return y.mes.localeCompare(x.mes); }).slice(0,6);
     var rows = historico.map(function(c){
       return '<div class="parcela-row"><span class="pnum">'+c.mes+'</span><span class="pval tabular">'+fmtBRL(a.valorMensal)+'</span><span class="pvenc tabular">'+(c.pago?"Pago":"Pendente")+'</span></div>';
     }).join("");
     return '<div class="lv-domain-box" style="flex-direction:column;align-items:stretch;">'+
-      '<div class="lv-item"><label>Assinatura de manutenção</label><div class="val"><span class="chip '+info.status+'">'+ASSINATURA_LABEL[info.status]+'</span> '+fmtBRL(a.valorMensal)+'/mês · dia '+(a.diaCobranca||5)+' · '+info.mesesPagos+' mês(es) pago(s)</div></div>'+
-      '<button class="chip '+(cicloAtualPago?"ok":"soon")+'" data-toggle-assinatura-mes="1" style="align-self:flex-start;">'+(cicloAtualPago?"Mês atual pago ✓":"Marcar mês atual como pago")+'</button>'+
+      '<div class="lv-item"><label>'+label+'</label><div class="val"><span class="chip '+info.status+'">'+ASSINATURA_LABEL[info.status]+'</span> '+fmtBRL(a.valorMensal)+'/mês · dia '+(a.diaCobranca||5)+' · '+info.mesesPagos+' mês(es) pago(s)</div></div>'+
+      '<button class="chip '+(cicloAtualPago?"ok":"soon")+'" data-toggle-assinatura-mes="'+key+'" style="align-self:flex-start;">'+(cicloAtualPago?"Mês atual pago ✓":"Marcar mês atual como pago")+'</button>'+
       (rows ? '<div class="parcelas-list" style="margin-top:6px;">'+rows+'</div>' : '')+
     '</div>';
   }
@@ -1364,7 +1377,8 @@
       '</div>'+
       (dom.contratado ? '<div class="lv-domain-box"><div class="lv-item"><label>Domínio</label><div class="val"><span class="chip '+domainStatus(lead)+'">'+DOMAIN_STATUS_LABEL[domainStatus(lead)]+'</span></div></div><div class="lv-item"><label>Vencimento</label><div class="val">'+fmtDateShort(dom.vencimento)+'</div></div><div class="lv-item"><label>Pago por</label><div class="val">'+escapeHtml(dom.pagoPor||"—")+'</div></div></div>' : '')+
       parcelasViewHtml(lead)+
-      assinaturaViewHtml(lead)+
+      assinaturaViewHtml(lead.assinatura, "Assinatura de manutenção", "assinatura")+
+      assinaturaViewHtml(lead.assinaturaSocial, "Assinatura de redes sociais / tráfego", "assinaturaSocial")+
       '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-list" style="margin-top:8px;">'+timelineHtml(lead.atividades)+'</div></div>'+
       '<div class="modal-actions"><button class="btn" id="lv_close">Fechar</button><button class="btn" id="lv_cadastro">Dados cadastrais</button><button class="btn" id="lv_acesso">Dados de acesso</button><button class="btn" id="lv_termo">Gerar termo</button><button class="btn primary" id="lv_edit">Editar</button></div>'+
@@ -1390,13 +1404,13 @@
         renderSideStats(computeKpis()); renderCrm(); renderTicker();
       });
     });
-    var btnAssMes = modalLayer.querySelector("[data-toggle-assinatura-mes]");
-    if(btnAssMes){
+    modalLayer.querySelectorAll("[data-toggle-assinatura-mes]").forEach(function(btnAssMes){
       btnAssMes.addEventListener("click", function(){
+        var key = btnAssMes.getAttribute("data-toggle-assinatura-mes");
         var ws = activeWs();
         var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
         if(!liveLead) return;
-        var a = liveLead.assinatura;
+        var a = liveLead[key];
         var mesAtual = mesAtualISO();
         a.ciclos = a.ciclos || [];
         var ciclo = a.ciclos.find(function(c){ return c.mes===mesAtual; });
@@ -1405,17 +1419,18 @@
         ciclo.dataPagamento = ciclo.pago ? todayISO() : "";
         pushLog(ws, (ciclo.pago?"Mensalidade "+mesAtual+" paga — ":"Mensalidade "+mesAtual+" reaberta — ")+liveLead.nome);
         saveState();
-        lead.assinatura = liveLead.assinatura;
+        lead[key] = liveLead[key];
         openLeadViewModal(lead);
         renderSideStats(computeKpis()); renderCrm(); renderTicker();
       });
-    }
+    });
   }
 
   // ---- Termo de entrega e responsabilidade ----
   function gerarTextoTermo(lead){
     var dom = lead.dominio || {contratado:false};
     var ass = lead.assinatura || {ativa:false};
+    var assSocial = lead.assinaturaSocial || {ativa:false};
     var cad = lead.cadastro || {};
     var linhas = [];
     linhas.push("TERMO DE ENTREGA E RESPONSABILIDADE — NETWORK SPACE");
@@ -1441,6 +1456,11 @@
       linhas.push("O cliente possui assinatura ativa de manutenção no valor de " + fmtBRL(ass.valorMensal) + "/mês, com cobrança todo dia " + (ass.diaCobranca||5) + ". Enquanto a assinatura estiver ativa e em dia, a Network Space realiza as atualizações e os ajustes solicitados pelo cliente.");
     } else {
       linhas.push("O cliente optou por não contratar a assinatura de manutenção. A partir da entrega, qualquer alteração futura no site é orçada separadamente, ou pode ser resolvida contratando a assinatura mensal a qualquer momento.");
+    }
+    if(assSocial.ativa){
+      linhas.push("");
+      linhas.push("4. Redes sociais e tráfego pago");
+      linhas.push("O cliente possui assinatura ativa de gestão de redes sociais e tráfego pago no valor de " + fmtBRL(assSocial.valorMensal) + "/mês, com cobrança todo dia " + (assSocial.diaCobranca||5) + ". Enquanto a assinatura estiver ativa e em dia, a Network Space cuida do Instagram do cliente, roda campanhas de tráfego pago e produz o conteúdo combinado (roteiro e gravação).");
     }
     linhas.push("");
     linhas.push("Documento gerado automaticamente pelo painel Vértice — Network Space.");
@@ -1555,10 +1575,11 @@
   }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", servico:"site", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:{ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]}, cadastro:cadastroVazio() };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", servico:"site", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:assinaturaVazia(79), assinaturaSocial:assinaturaVazia(0), cadastro:cadastroVazio() };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
     var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
-    var assinatura = lead.assinatura || {ativa:false,valorMensal:79,diaCobranca:5,dataInicio:"",ciclos:[]};
+    var assinatura = lead.assinatura || assinaturaVazia(79);
+    var assinaturaSocial = lead.assinaturaSocial || assinaturaVazia(0);
     var waHref = waLink(lead.whatsapp);
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal wide">'+
@@ -1590,6 +1611,13 @@
         '<div class="field"><label>Assinante desde</label><input id="l_assinatura_inicio" type="date" value="'+(assinatura.dataInicio||todayISO())+'"></div>'+
         '<div class="field-hint">Isso é a manutenção/suporte contínuo — não é repasse de hospedagem (o site já é hospedado grátis).</div>'+
       '</div>'+
+      '<div class="checkbox-row"><input type="checkbox" id="l_social_on"'+(assinaturaSocial.ativa?" checked":"")+'><label for="l_social_on" style="margin:0;">Cliente tem assinatura de redes sociais / tráfego pago</label></div>'+
+      '<div class="domain-sub" id="socialSub" style="display:'+(assinaturaSocial.ativa?"block":"none")+';">'+
+        '<div class="field-row"><div class="field"><label>Valor mensal (R$)</label><input id="l_social_valor" type="number" step="0.01" value="'+(assinaturaSocial.valorMensal||"")+'"></div>'+
+        '<div class="field"><label>Dia da cobrança</label><input id="l_social_dia" type="number" min="1" max="28" value="'+(assinaturaSocial.diaCobranca||5)+'"></div></div>'+
+        '<div class="field"><label>Assinante desde</label><input id="l_social_inicio" type="date" value="'+(assinaturaSocial.dataInicio||todayISO())+'"></div>'+
+        '<div class="field-hint">Cobrança separada da manutenção do site — gestão de Instagram, tráfego pago, roteiro e gravação de vídeo.</div>'+
+      '</div>'+
       '<div class="modal-actions">'+(editing?'<button class="danger-link" id="l_delete">Excluir</button>':'')+'<button class="btn" id="l_cancel">Cancelar</button><button class="btn primary" id="l_save">Salvar</button></div>'+
       (editing ? '<div class="timeline-section"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-add" style="margin-top:8px;"><select id="t_tipo">'+ACT_TYPES.map(function(t){return '<option>'+t+'</option>';}).join("")+'</select><input id="t_texto" placeholder="O que aconteceu?"><button class="btn sm" id="t_add">Registrar</button></div>'+
@@ -1599,6 +1627,7 @@
     document.getElementById("l_dom_on").addEventListener("change", function(e){ document.getElementById("domainSub").style.display = e.target.checked ? "block":"none"; });
     document.getElementById("l_parcelado").addEventListener("change", function(e){ document.getElementById("parcelasSub").style.display = e.target.checked ? "block":"none"; });
     document.getElementById("l_assinatura_on").addEventListener("change", function(e){ document.getElementById("assinaturaSub").style.display = e.target.checked ? "block":"none"; });
+    document.getElementById("l_social_on").addEventListener("change", function(e){ document.getElementById("socialSub").style.display = e.target.checked ? "block":"none"; });
     document.getElementById("l_gerar_parcelas").addEventListener("click", function(){
       var n = Math.max(2, Math.min(24, parseInt(document.getElementById("l_num_parcelas").value)||2));
       var valorTotal = parseFloat(document.getElementById("l_valor").value)||0;
@@ -1672,6 +1701,7 @@
         });
       }
       var assinaturaOn = document.getElementById("l_assinatura_on").checked;
+      var socialOn = document.getElementById("l_social_on").checked;
       var updated = {
         id: lead.id, nome:nome,
         nicho: document.getElementById("l_nicho").value.trim(),
@@ -1694,6 +1724,14 @@
           dataInicio: assinaturaOn ? (document.getElementById("l_assinatura_inicio").value || todayISO()) : (assinatura.dataInicio||""),
           dataCancelamento: (!assinaturaOn && assinatura.ativa) ? todayISO() : (assinaturaOn ? "" : (assinatura.dataCancelamento||"")),
           ciclos: assinatura.ciclos || []
+        },
+        assinaturaSocial: {
+          ativa: socialOn,
+          valorMensal: socialOn ? (parseFloat(document.getElementById("l_social_valor").value)||0) : (assinaturaSocial.valorMensal||0),
+          diaCobranca: socialOn ? (parseInt(document.getElementById("l_social_dia").value,10)||5) : (assinaturaSocial.diaCobranca||5),
+          dataInicio: socialOn ? (document.getElementById("l_social_inicio").value || todayISO()) : (assinaturaSocial.dataInicio||""),
+          dataCancelamento: (!socialOn && assinaturaSocial.ativa) ? todayISO() : (socialOn ? "" : (assinaturaSocial.dataCancelamento||"")),
+          ciclos: assinaturaSocial.ciclos || []
         },
         cadastro: lead.cadastro || cadastroVazio(),
         atividades: lead.atividades || []
