@@ -235,17 +235,32 @@
 
   /* -------- gestão financeira -------- */
   @keyframes gfinPop{ 0%{ opacity:0; transform:translateY(10px) scale(.96); } 100%{ opacity:1; transform:translateY(0) scale(1); } }
-  .gfin-body{ padding:12px; gap:12px; overflow-y:auto; }
+  .gfin-full-body{ flex:1; min-height:0; overflow-y:auto; padding:20px 26px 30px; display:flex; flex-direction:column; gap:14px; }
   .gfin-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; flex:0 0 auto; }
-  .gfin-kpi{ background:var(--surface-2); border:1px solid var(--border); border-top:2px solid var(--border-strong); border-radius:9px; padding:12px 14px; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) backwards; }
-  .gfin-kpi:nth-child(2){ animation-delay:.06s; } .gfin-kpi:nth-child(3){ animation-delay:.12s; }
+  .gfin-kpis-2{ grid-template-columns:220px 1fr; }
+  .gfin-kpi{ background:var(--surface-2); border:1px solid var(--border); border-top:2px solid var(--border-strong); border-radius:9px; padding:14px 16px; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) backwards; }
+  .gfin-kpis .gfin-kpi:nth-child(2){ animation-delay:.06s; } .gfin-kpis .gfin-kpi:nth-child(3){ animation-delay:.12s; }
   .gfin-kpi .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; font-weight:800; letter-spacing:.4px; }
-  .gfin-kpi .v{ font-size:19px; font-weight:800; margin-top:5px; }
+  .gfin-kpi .v{ font-size:22px; font-weight:800; margin-top:6px; }
+  .gfin-kpi .s{ font-size:10px; color:var(--text-faint); margin-top:4px; }
   .gfin-kpi.in{ border-top-color:var(--success); } .gfin-kpi.in .v{ color:var(--success); }
   .gfin-kpi.out{ border-top-color:var(--danger); } .gfin-kpi.out .v{ color:var(--danger); }
   .gfin-kpi.bal{ border-top-color:var(--accent); }
+  .gfin-kpi.margem{ display:flex; flex-direction:column; justify-content:center; }
+  .gfin-kpi.margem .v{ font-size:30px; }
+  .gfin-cats{ background:var(--surface-2); border:1px solid var(--border); border-radius:9px; padding:14px 16px; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .06s backwards; }
+  .gfin-cats .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; font-weight:800; letter-spacing:.4px; margin-bottom:10px; }
+  .gfin-cat-list{ display:flex; flex-direction:column; gap:8px; }
+  .gfin-cat-row{ display:flex; align-items:center; gap:8px; font-size:11px; }
+  .gfin-cat-row .dot{ width:7px; height:7px; border-radius:50%; flex:0 0 auto; }
+  .gfin-cat-row .name{ flex:0 0 auto; min-width:90px; color:var(--text-muted); }
+  .gfin-cat-row .bar{ flex:1; height:6px; border-radius:4px; background:var(--surface-3); overflow:hidden; }
+  .gfin-cat-row .bar i{ display:block; height:100%; border-radius:4px; }
+  .gfin-cat-row .val{ flex:0 0 auto; font-family:var(--mono); font-size:10.5px; color:var(--text); }
   .gfin-chart-wrap{ height:190px; flex:0 0 auto; position:relative; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .16s backwards; }
-  .gfin-table-wrap{ flex:1 1 auto; min-height:120px; overflow-y:auto; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .22s backwards; }
+  .gfin-chart-wrap-full{ height:260px; }
+  .gfin-table-wrap{ flex:1 1 auto; min-height:160px; overflow-y:auto; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .22s backwards; }
+  @media (max-width:760px){ .gfin-kpis{ grid-template-columns:1fr; } .gfin-kpis-2{ grid-template-columns:1fr; } }
 
   /* -------- pipeline (full screen) -------- */
   .pipeline-cta{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--accent-soft); border:1px solid hsl(var(--h) var(--s) 58% / .4); color:var(--text); padding:10px 12px; border-radius:6px; font-weight:700; font-size:11.5px; }
@@ -403,6 +418,7 @@
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
+      <button class="pipeline-cta" id="btnOpenGfin"><span>📊 Gestão Financeira</span></button>
     </div>
 
     <div class="side-foot">
@@ -422,7 +438,7 @@
       <div class="panel z-crm">
         <div id="primaryAgencia">
           <div class="crm-toolbar">
-            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button><button data-tab="cobrancas">Cobranças <span class="badge tabular" id="cobrancasBadge" style="display:none;">0</span></button><button data-tab="gestaofin">Gestão Financeira</button></div>
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button><button data-tab="cobrancas">Cobranças <span class="badge tabular" id="cobrancasBadge" style="display:none;">0</span></button></div>
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
@@ -463,29 +479,6 @@
               <div class="field-hint" id="cobrancasResumo" style="padding:10px 4px 4px;"></div>
               <table><thead><tr><th>Cliente</th><th>Assinatura</th><th class="num">Valor/mês</th><th>Dia cobr.</th><th>Status</th><th></th></tr></thead><tbody id="crmCobrancasRows"></tbody></table>
               <div class="empty-state" id="cobrancasEmpty" style="display:none"><div class="big">💳</div><p>Nenhuma assinatura ativa ainda. Marque "assinatura" no lead (manutenção do site ou redes sociais) pra ela aparecer aqui.</p></div>
-            </div>
-          </div>
-          <div class="list-wrap" id="crmGestaoFin" style="display:none">
-            <div class="panel-body gfin-body" style="display:flex;flex-direction:column;">
-              <div class="crm-toolbar" style="padding:0;border:none;">
-                <div class="temp-filter" id="gfinPeriodFilter">
-                  <button data-periodo="7">7 dias</button>
-                  <button data-periodo="30" class="active">30 dias</button>
-                  <button data-periodo="mes">Este mês</button>
-                  <button data-periodo="90">90 dias</button>
-                </div>
-                <button class="btn primary sm" id="btnGfinReport" style="margin-left:auto;">📄 Gerar relatório</button>
-              </div>
-              <div class="gfin-kpis">
-                <div class="gfin-kpi in"><div class="l">Entradas no período</div><div class="v tabular" id="gfinEntradas">R$ 0</div></div>
-                <div class="gfin-kpi out"><div class="l">Saídas no período</div><div class="v tabular" id="gfinSaidas">R$ 0</div></div>
-                <div class="gfin-kpi bal"><div class="l">Saldo do período</div><div class="v tabular" id="gfinSaldo">R$ 0</div></div>
-              </div>
-              <div class="gfin-chart-wrap"><canvas id="gfinChart"></canvas><div class="empty-mini" id="gfinChartEmpty" style="display:none">Sem lançamentos neste período.</div></div>
-              <div class="gfin-table-wrap">
-                <table><thead><tr><th>Dia</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Saldo</th></tr></thead><tbody id="gfinRows"></tbody></table>
-                <div class="empty-state" id="gfinEmpty" style="display:none"><div class="big">📊</div><p>Nada lançado neste período ainda.</p></div>
-              </div>
             </div>
           </div>
         </div>
@@ -582,6 +575,43 @@
     </div>
   </div>
   <div class="kanban kanban-full" id="crmPipeline"></div>
+</div>
+
+<div id="gfinOverlay" class="pipeline-overlay" style="display:none">
+  <div class="pipeline-overlay-head">
+    <h2>Gestão Financeira — <span id="gfinWsName"></span></h2>
+    <div class="pipeline-overlay-actions">
+      <div class="temp-filter" id="gfinPeriodFilter" title="Período">
+        <button data-periodo="7">7 dias</button>
+        <button data-periodo="30" class="active">30 dias</button>
+        <button data-periodo="mes">Este mês</button>
+        <button data-periodo="90">90 dias</button>
+      </div>
+      <button class="btn primary sm" id="btnGfinReport">📄 Gerar relatório</button>
+      <button class="btn sm" id="btnCloseGfin">✕ Fechar (Esc)</button>
+    </div>
+  </div>
+  <div class="gfin-full-body">
+    <div class="field-hint" style="max-width:640px;">Cálculo por caixa: entradas contam quando o dinheiro realmente entra (à vista na data do fechamento; parcelas e assinaturas na data em que são marcadas como pagas), não na data do contrato.</div>
+    <div class="gfin-kpis">
+      <div class="gfin-kpi in"><div class="l">Entradas no período</div><div class="v tabular" id="gfinEntradas">R$ 0</div></div>
+      <div class="gfin-kpi out"><div class="l">Saídas no período</div><div class="v tabular" id="gfinSaidas">R$ 0</div></div>
+      <div class="gfin-kpi bal"><div class="l">Lucro líquido do período</div><div class="v tabular" id="gfinSaldo">R$ 0</div></div>
+    </div>
+    <div class="gfin-kpis gfin-kpis-2">
+      <div class="gfin-kpi margem"><div class="l">Margem de lucro</div><div class="v tabular" id="gfinMargem">0%</div><div class="s" id="gfinMargemSub"></div></div>
+      <div class="gfin-cats">
+        <div class="l">Saídas por categoria no período</div>
+        <div id="gfinCatBreakdown" class="gfin-cat-list"></div>
+        <div class="empty-mini" id="gfinCatEmpty" style="display:none;">Sem gastos categorizados neste período.</div>
+      </div>
+    </div>
+    <div class="gfin-chart-wrap gfin-chart-wrap-full"><canvas id="gfinChart"></canvas><div class="empty-mini" id="gfinChartEmpty" style="display:none">Sem lançamentos neste período.</div></div>
+    <div class="gfin-table-wrap">
+      <table><thead><tr><th>Dia</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Saldo</th></tr></thead><tbody id="gfinRows"></tbody></table>
+      <div class="empty-state" id="gfinEmpty" style="display:none"><div class="big">📊</div><p>Nada lançado neste período ainda.</p></div>
+    </div>
+  </div>
 </div>
 
 <script>/*!
@@ -1151,9 +1181,29 @@
       });
     } else {
       ws.leads.forEach(function(l){
-        if(l.stage!=="fechado") return;
-        var dt = l.dataFechamento||l.data;
-        if(dt && entradasByDay.hasOwnProperty(dt)) entradasByDay[dt]+=Number(l.valor||0);
+        // dinheiro que entra ao fechar: à vista conta na data do fechamento; parcelado conta parcela por parcela, na data em que cada uma foi paga
+        if(l.stage==="fechado"){
+          var parcelas = (l.pagamento && l.pagamento.parcelado) ? (l.pagamento.parcelas||[]) : [];
+          if(parcelas.length){
+            parcelas.forEach(function(pc){
+              if(pc.pago && pc.dataPagamento && entradasByDay.hasOwnProperty(pc.dataPagamento)) entradasByDay[pc.dataPagamento]+=Number(pc.valor||0);
+            });
+          } else {
+            var dt = l.dataFechamento||l.data;
+            if(dt && entradasByDay.hasOwnProperty(dt)) entradasByDay[dt]+=Number(l.valor||0);
+          }
+        }
+        // assinaturas: cada ciclo conta como entrada só quando marcado como pago, na data do pagamento
+        if(l.assinatura){
+          (l.assinatura.ciclos||[]).forEach(function(c){
+            if(c.pago && c.dataPagamento && entradasByDay.hasOwnProperty(c.dataPagamento)) entradasByDay[c.dataPagamento]+=Number(l.assinatura.valorMensal||0);
+          });
+        }
+        if(l.assinaturaSocial){
+          (l.assinaturaSocial.ciclos||[]).forEach(function(c){
+            if(c.pago && c.dataPagamento && entradasByDay.hasOwnProperty(c.dataPagamento)) entradasByDay[c.dataPagamento]+=Number(l.assinaturaSocial.valorMensal||0);
+          });
+        }
       });
     }
     ws.expenses.forEach(function(e){ if(e.data && saidasByDay.hasOwnProperty(e.data)) saidasByDay[e.data]+=Number(e.valor||0); });
@@ -1164,14 +1214,43 @@
       return { data:d, entradas:entradas, saidas:saidas, saldoDia:entradas-saidas, saldoAcum:saldoAcum };
     });
   }
+  function gfinCategoryBreakdown(){
+    var ws = activeWs();
+    var days = gfinPeriodDays();
+    var daySet = {}; days.forEach(function(d){ daySet[d]=true; });
+    var totals = {};
+    ws.expenses.forEach(function(e){
+      if(!e.data || !daySet.hasOwnProperty(e.data)) return;
+      var cat = e.categoria || "Outros";
+      totals[cat] = (totals[cat]||0) + Number(e.valor||0);
+    });
+    var cats = Object.keys(totals).sort(function(a,b){ return totals[b]-totals[a]; });
+    var total = cats.reduce(function(s,c){ return s+totals[c]; }, 0);
+    return cats.map(function(c){ return { categoria:c, valor:totals[c], pct: total>0 ? (totals[c]/total*100) : 0 }; });
+  }
   function renderGestaoFin(){
+    document.getElementById("gfinWsName").textContent = activeWs().nome;
     var rows = gfinDailySeries();
     var totalEntradas = rows.reduce(function(s,r){return s+r.entradas;},0);
     var totalSaidas = rows.reduce(function(s,r){return s+r.saidas;},0);
+    var lucro = totalEntradas-totalSaidas;
+    var margem = totalEntradas>0 ? (lucro/totalEntradas*100) : 0;
     var hasData = totalEntradas>0 || totalSaidas>0;
     animateCount(document.getElementById("gfinEntradas"), totalEntradas);
     animateCount(document.getElementById("gfinSaidas"), totalSaidas);
-    animateCount(document.getElementById("gfinSaldo"), totalEntradas-totalSaidas);
+    animateCount(document.getElementById("gfinSaldo"), lucro);
+    var margemEl = document.getElementById("gfinMargem");
+    margemEl.textContent = totalEntradas>0 ? margem.toFixed(1).replace(".",",")+"%" : "—";
+    margemEl.style.color = !totalEntradas ? "" : margem>=0 ? "var(--success)" : "var(--danger)";
+    document.getElementById("gfinMargemSub").textContent = totalEntradas>0 ? "De cada R$100 que entra, "+Math.round(margem)+" ficam de lucro" : "Sem entradas no período";
+    var cats = gfinCategoryBreakdown();
+    document.getElementById("gfinCatEmpty").style.display = cats.length ? "none":"block";
+    document.getElementById("gfinCatBreakdown").innerHTML = cats.map(function(c){
+      return '<div class="gfin-cat-row"><span class="dot" style="background:'+catColor(c.categoria)+'"></span>'+
+        '<span class="name">'+escapeHtml(c.categoria)+'</span>'+
+        '<span class="bar"><i style="width:'+c.pct.toFixed(0)+'%;background:'+catColor(c.categoria)+'"></i></span>'+
+        '<span class="val">'+fmtBRL(c.valor)+'</span></div>';
+    }).join("");
     document.getElementById("gfinChartEmpty").style.display = hasData ? "none":"flex";
     if(safeChart()){
       var el = document.getElementById("gfinChart");
@@ -1226,7 +1305,13 @@
     var rows = gfinDailySeries();
     var totalEntradas = rows.reduce(function(s,r){return s+r.entradas;},0);
     var totalSaidas = rows.reduce(function(s,r){return s+r.saidas;},0);
+    var lucro = totalEntradas-totalSaidas;
+    var margem = totalEntradas>0 ? (lucro/totalEntradas*100) : 0;
     var periodoLabel = gfinPeriodo==="mes" ? "Este mês" : "Últimos "+gfinPeriodo+" dias";
+    var cats = gfinCategoryBreakdown();
+    var catsHtml = cats.length ? cats.map(function(c){
+      return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(c.categoria)+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(c.valor)+'</td><td style="padding:6px 4px;text-align:right;">'+c.pct.toFixed(0)+'%</td></tr>';
+    }).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhuma saída categorizada neste período.</td></tr>';
     var linhas = rows.slice().reverse().filter(function(r){return r.entradas||r.saidas;}).map(function(r){
       return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+fmtDateShort(r.data)+'</td>'+
         '<td style="padding:6px 4px;text-align:right;color:#1a7a44;">'+(r.entradas?fmtBRL(r.entradas):"—")+'</td>'+
@@ -1236,11 +1321,15 @@
     if(!linhas) linhas = '<tr><td style="padding:10px 4px;color:#999;" colspan="4">Nenhum lançamento neste período.</td></tr>';
     var html = '<div style="font-family:Georgia,serif;max-width:720px;margin:40px auto;color:#1a1a1a;">'+
       '<h1 style="font-size:22px;margin:0 0 2px;">Gestão financeira — '+escapeHtml(ws.nome)+'</h1>'+
-      '<div style="color:#666;font-size:13px;margin-bottom:24px;">'+periodoLabel+'</div>'+
+      '<div style="color:#666;font-size:13px;margin-bottom:24px;">'+periodoLabel+' · cálculo por caixa (dinheiro que realmente entrou/saiu)</div>'+
       '<div style="display:flex;gap:24px;margin-bottom:28px;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:14px 0;">'+
         '<div><div style="font-size:11px;color:#666;">ENTRADAS</div><div style="font-size:20px;">'+fmtBRL(totalEntradas)+'</div></div>'+
         '<div><div style="font-size:11px;color:#666;">SAÍDAS</div><div style="font-size:20px;">'+fmtBRL(totalSaidas)+'</div></div>'+
-        '<div><div style="font-size:11px;color:#666;">SALDO</div><div style="font-size:20px;">'+fmtBRL(totalEntradas-totalSaidas)+'</div></div></div>'+
+        '<div><div style="font-size:11px;color:#666;">LUCRO LÍQUIDO</div><div style="font-size:20px;">'+fmtBRL(lucro)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">MARGEM DE LUCRO</div><div style="font-size:20px;">'+(totalEntradas>0?margem.toFixed(1).replace(".",",")+"%":"—")+'</div></div></div>'+
+      '<h2 style="font-size:15px;">Saídas por categoria</h2>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><thead><tr style="text-align:left;border-bottom:2px solid #333;">'+
+      '<th style="padding:6px 4px;">Categoria</th><th style="padding:6px 4px;text-align:right;">Valor</th><th style="padding:6px 4px;text-align:right;">%</th></tr></thead><tbody>'+catsHtml+'</tbody></table>'+
       '<h2 style="font-size:15px;">Detalhamento por dia</h2>'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><thead><tr style="text-align:left;border-bottom:2px solid #333;">'+
       '<th style="padding:6px 4px;">Dia</th><th style="padding:6px 4px;text-align:right;">Entradas</th><th style="padding:6px 4px;text-align:right;">Saídas</th><th style="padding:6px 4px;text-align:right;">Saldo</th></tr></thead><tbody>'+
@@ -1260,13 +1349,11 @@
       document.getElementById("crmClientes").style.display = crmTab==="clientes" ? "flex":"none";
       document.getElementById("crmCadastro").style.display = crmTab==="cadastro" ? "flex":"none";
       document.getElementById("crmCobrancas").style.display = crmTab==="cobrancas" ? "flex":"none";
-      document.getElementById("crmGestaoFin").style.display = crmTab==="gestaofin" ? "flex":"none";
       if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
       if(crmTab==="reunioes"){ renderReunioes(); }
       if(crmTab==="clientes"){ renderClientes(); }
       if(crmTab==="cadastro"){ renderCadastro(); }
       if(crmTab==="cobrancas"){ renderCobrancas(); }
-      if(crmTab==="gestaofin"){ renderGestaoFin(); }
     });
   });
   document.getElementById("crmSearch").addEventListener("input", function(e){ crmSearchTerm = e.target.value.toLowerCase(); renderCrm(); });
@@ -1308,8 +1395,16 @@
     document.querySelectorAll("#tempFilter button").forEach(function(x){ x.classList.toggle("active", x.getAttribute("data-temp")===crmTempFilter); });
     renderCrm();
   });
+  function openGfinOverlay(){
+    document.getElementById("gfinOverlay").style.display = "flex";
+    renderGestaoFin();
+  }
+  function closeGfinOverlay(){ document.getElementById("gfinOverlay").style.display = "none"; }
+  document.getElementById("btnOpenGfin").addEventListener("click", openGfinOverlay);
+  document.getElementById("btnCloseGfin").addEventListener("click", closeGfinOverlay);
   document.addEventListener("keydown", function(e){
     if(e.key==="Escape" && document.getElementById("pipelineOverlay").style.display!=="none") closePipelineOverlay();
+    if(e.key==="Escape" && document.getElementById("gfinOverlay").style.display!=="none") closeGfinOverlay();
   });
 
   function leadFilter(l){
@@ -1356,7 +1451,6 @@
     if(crmTab==="clientes"){ renderClientes(); }
     if(crmTab==="cadastro"){ renderCadastro(); }
     if(crmTab==="cobrancas"){ renderCobrancas(); }
-    if(crmTab==="gestaofin"){ renderGestaoFin(); }
     updateCobrancasBadge();
   }
   function renderClientes(){
