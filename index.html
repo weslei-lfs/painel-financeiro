@@ -641,11 +641,25 @@
         <label>Nicho do negócio</label>
         <select id="mg_nicho">
           <option value="dentista">Dentista</option>
+          <option value="clinica_medica">Clínica médica</option>
+          <option value="fisioterapeuta">Fisioterapeuta</option>
+          <option value="psicologo">Psicólogo</option>
           <option value="advogado">Advogado</option>
           <option value="contador">Contador</option>
-          <option value="loja_roupa">Loja de roupa</option>
+          <option value="engenheiro_arquiteto">Engenheiro / Arquiteto</option>
           <option value="imobiliaria">Imobiliária</option>
           <option value="corretor">Corretor de imóveis</option>
+          <option value="loja_roupa">Loja de roupa</option>
+          <option value="salao_beleza">Salão de beleza</option>
+          <option value="barbearia">Barbearia</option>
+          <option value="academia">Academia</option>
+          <option value="petshop">Pet shop / Clínica veterinária</option>
+          <option value="farmacia">Farmácia</option>
+          <option value="optica">Óptica</option>
+          <option value="restaurante">Restaurante / Lanchonete</option>
+          <option value="oficina">Oficina mecânica / Autopeças</option>
+          <option value="material_construcao">Material de construção</option>
+          <option value="autoescola">Autoescola</option>
           <option value="outro">Outro nicho</option>
         </select>
       </div>
@@ -657,20 +671,25 @@
         <label>Cidade</label>
         <input id="mg_cidade" placeholder="Ex: Andradina">
       </div>
-      <div class="field-row">
-        <div class="field"><label>Mercado — de (R$)</label><input id="mg_preco_min" type="number" step="1" placeholder="2000"></div>
-        <div class="field"><label>Mercado — até (R$)</label><input id="mg_preco_max" type="number" step="1" placeholder="3000"></div>
-      </div>
+      <div class="field"><label>Preço de mercado — de (R$)</label><input id="mg_preco_min" type="number" step="1" placeholder="2000"></div>
+      <div class="field"><label>Preço de mercado — até (R$)</label><input id="mg_preco_max" type="number" step="1" placeholder="3000"></div>
       <div class="field">
         <label>Sua oferta hoje (R$)</label>
         <input id="mg_preco_oferta" type="number" step="1" placeholder="599">
+      </div>
+      <div class="field">
+        <label>WhatsApp do lead (opcional)</label>
+        <input id="mg_whatsapp" type="tel" placeholder="18999999999">
       </div>
       <button class="btn primary" id="btnGerarMsg">✨ Gerar mensagem</button>
     </div>
     <div class="msggen-output">
       <label>Mensagem gerada — pode editar antes de copiar</label>
       <textarea id="mg_output" placeholder='Preencha os campos ao lado e clique em "Gerar mensagem".'></textarea>
-      <button class="btn primary" id="btnCopyMsg" style="align-self:flex-end;">📋 Copiar mensagem</button>
+      <div style="display:flex; gap:8px; align-self:flex-end;">
+        <a class="btn" id="btnOpenWaMsg" target="_blank" rel="noopener" style="display:none;">💬 Abrir no WhatsApp</a>
+        <button class="btn primary" id="btnCopyMsg">📋 Copiar mensagem</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1467,11 +1486,25 @@
   /* ---------------- GERADOR DE MENSAGEM DE PROSPECÇÃO ---------------- */
   var NICHO_HOOKS = {
     dentista: "Quem procura tratamento pesquisa no Google antes de agendar — sem site, o consultório fica invisível justamente pra quem já está buscando confiança antes de marcar uma consulta.",
+    clinica_medica: "Paciente pesquisa o profissional e a clínica no Google antes de marcar consulta — sem site, fica mais difícil transmitir a confiança que alguém precisa antes de cuidar da própria saúde.",
+    fisioterapeuta: "Paciente pesquisa antes de escolher onde fazer o tratamento — um site com especialidades e forma de atendimento passa muito mais confiança do que só um perfil de rede social.",
+    psicologo: "Quem procura terapia pesquisa bastante antes de marcar a primeira sessão — um site explicando abordagem, especialidades e como funciona o atendimento ajuda a pessoa a se sentir seguro pra dar o primeiro passo.",
     advogado: "Clientes pesquisam o escritório no Google antes de fechar — sem site, fica muito mais difícil transmitir credibilidade logo no primeiro contato.",
     contador: "Empresas pesquisam antes de trocar de contador — um site profissional passa muito mais confiança do que só um cartão de visita ou um perfil no Instagram.",
-    loja_roupa: "Hoje quem pesquisa antes de comprar acaba só encontrando o Instagram — e isso faz a loja perder clientes que preferem ver o catálogo completo antes de decidir.",
+    engenheiro_arquiteto: "Cliente de obra ou reforma pesquisa portfólio antes de fechar — sem site pra mostrar projetos já entregues, fica mais difícil provar experiência logo de cara.",
     imobiliaria: "Quem procura imóvel pesquisa online antes de escolher a imobiliária — sem site com os imóveis, vocês ficam atrás de quem já tem catálogo digital.",
     corretor: "Clientes de imóvel pesquisam o corretor antes de fechar negócio — ter um site profissional, além do Instagram, passa muito mais credibilidade e autoridade.",
+    loja_roupa: "Hoje quem pesquisa antes de comprar acaba só encontrando o Instagram — e isso faz a loja perder clientes que preferem ver o catálogo completo antes de decidir.",
+    salao_beleza: "Cliente novo pesquisa antes de marcar horário — um site com os serviços, preços e fotos dos trabalhos passa muito mais profissionalismo do que só um perfil de Instagram.",
+    barbearia: "Quem procura barbearia pesquisa antes de agendar — um site com os serviços, preços e um link direto pra marcar horário facilita a vida do cliente e passa mais profissionalismo.",
+    academia: "Quem pesquisa academia antes de se matricular quer ver planos, modalidades e estrutura — sem site, fica difícil mostrar tudo isso de forma organizada antes da pessoa decidir visitar.",
+    petshop: "Tutor de pet pesquisa antes de escolher onde levar o bichinho — um site com serviços, preços e diferenciais passa mais confiança do que só o Instagram.",
+    farmacia: "Quem procura remédio ou produto pesquisa preço e disponibilidade no Google antes de sair de casa — sem site, a farmácia perde esse primeiro contato pra quem já tem presença online.",
+    optica: "Cliente pesquisa óculos e exames antes de escolher onde comprar — um site com produtos, marcas e promoções ajuda a atrair quem está comparando opções na região.",
+    restaurante: "Quem decide onde comer pesquisa cardápio, endereço e horário no Google antes de sair de casa — sem site, o restaurante depende só do Instagram e do boca a boca pra ser encontrado.",
+    oficina: "Quem precisa de conserto pesquisa oficina no Google antes de levar o carro — sem site, fica mais difícil aparecer pra quem está comparando onde confiar o veículo.",
+    material_construcao: "Quem está construindo ou reformando pesquisa fornecedor e preço antes de fechar compra — um site com catálogo e contato direto facilita decidir por vocês.",
+    autoescola: "Quem vai tirar ou renovar a CNH pesquisa autoescola no Google antes de se matricular — um site com preços, turmas e diferenciais ajuda a decidir por vocês em vez do concorrente.",
     outro: "Notamos que o negócio ainda não tem um site — e isso pode estar fazendo vocês perderem clientes que pesquisam no Google antes de decidir onde comprar/contratar."
   };
   function fmtPrecoMsg(n){
@@ -1517,9 +1550,20 @@
   document.getElementById("mg_nicho").addEventListener("change", function(){
     document.getElementById("mg_nicho_outro_wrap").style.display = this.value==="outro" ? "flex":"none";
   });
+  function atualizarWaMsgLink(){
+    var texto = document.getElementById("mg_output").value;
+    var fone = document.getElementById("mg_whatsapp").value.trim();
+    var link = document.getElementById("btnOpenWaMsg");
+    var href = fone && texto ? (waLink(fone) + "?text=" + encodeURIComponent(texto)) : "";
+    link.href = href;
+    link.style.display = href ? "inline-flex" : "none";
+  }
   document.getElementById("btnGerarMsg").addEventListener("click", function(){
     document.getElementById("mg_output").value = gerarMensagemProspeccao();
+    atualizarWaMsgLink();
   });
+  document.getElementById("mg_output").addEventListener("input", atualizarWaMsgLink);
+  document.getElementById("mg_whatsapp").addEventListener("input", atualizarWaMsgLink);
   document.getElementById("btnCopyMsg").addEventListener("click", function(){
     var btn = document.getElementById("btnCopyMsg");
     var texto = document.getElementById("mg_output").value;
