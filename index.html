@@ -262,6 +262,19 @@
   .gfin-table-wrap{ flex:1 1 auto; min-height:160px; overflow-y:auto; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .22s backwards; }
   @media (max-width:760px){ .gfin-kpis{ grid-template-columns:1fr; } .gfin-kpis-2{ grid-template-columns:1fr; } }
 
+  /* -------- gerador de mensagem -------- */
+  .msggen-body{ flex:1; min-height:0; overflow-y:auto; padding:24px 26px 30px; display:grid; grid-template-columns:280px 1fr; gap:22px; align-items:start; }
+  .msggen-form{ display:flex; flex-direction:column; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .msggen-form .btn.primary{ margin-top:8px; }
+  .msggen-output{ display:flex; flex-direction:column; gap:10px; min-height:0; height:100%; }
+  .msggen-output label{ font-size:10px; color:var(--text-faint); text-transform:uppercase; font-weight:800; letter-spacing:.4px; }
+  .msggen-output textarea{
+    flex:1; min-height:380px; resize:vertical; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px 22px; color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.7;
+  }
+  .msggen-output textarea:focus{ outline:none; border-color:var(--accent); }
+  @media (max-width:820px){ .msggen-body{ grid-template-columns:1fr; } }
+
   /* -------- pipeline (full screen) -------- */
   .pipeline-cta{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--accent-soft); border:1px solid hsl(var(--h) var(--s) 58% / .4); color:var(--text); padding:10px 12px; border-radius:6px; font-weight:700; font-size:11.5px; }
   .pipeline-cta:hover{ border-color:var(--accent); }
@@ -419,6 +432,7 @@
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
       <button class="pipeline-cta" id="btnOpenGfin"><span>📊 Gestão Financeira</span></button>
+      <button class="pipeline-cta" id="btnOpenMsgGen"><span>✉️ Gerador de Mensagem</span></button>
     </div>
 
     <div class="side-foot">
@@ -610,6 +624,53 @@
     <div class="gfin-table-wrap">
       <table><thead><tr><th>Dia</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Saldo</th></tr></thead><tbody id="gfinRows"></tbody></table>
       <div class="empty-state" id="gfinEmpty" style="display:none"><div class="big">📊</div><p>Nada lançado neste período ainda.</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="msgGenOverlay" class="pipeline-overlay" style="display:none">
+  <div class="pipeline-overlay-head">
+    <h2>Gerador de Mensagem de Prospecção</h2>
+    <div class="pipeline-overlay-actions">
+      <button class="btn sm" id="btnCloseMsgGen">✕ Fechar (Esc)</button>
+    </div>
+  </div>
+  <div class="msggen-body">
+    <div class="msggen-form">
+      <div class="field">
+        <label>Nicho do negócio</label>
+        <select id="mg_nicho">
+          <option value="dentista">Dentista</option>
+          <option value="advogado">Advogado</option>
+          <option value="contador">Contador</option>
+          <option value="loja_roupa">Loja de roupa</option>
+          <option value="imobiliaria">Imobiliária</option>
+          <option value="corretor">Corretor de imóveis</option>
+          <option value="outro">Outro nicho</option>
+        </select>
+      </div>
+      <div class="field" id="mg_nicho_outro_wrap" style="display:none;">
+        <label>Qual nicho?</label>
+        <input id="mg_nicho_outro" placeholder="Ex: salão de beleza">
+      </div>
+      <div class="field">
+        <label>Cidade</label>
+        <input id="mg_cidade" placeholder="Ex: Andradina">
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Mercado — de (R$)</label><input id="mg_preco_min" type="number" step="1" placeholder="2000"></div>
+        <div class="field"><label>Mercado — até (R$)</label><input id="mg_preco_max" type="number" step="1" placeholder="3000"></div>
+      </div>
+      <div class="field">
+        <label>Sua oferta hoje (R$)</label>
+        <input id="mg_preco_oferta" type="number" step="1" placeholder="599">
+      </div>
+      <button class="btn primary" id="btnGerarMsg">✨ Gerar mensagem</button>
+    </div>
+    <div class="msggen-output">
+      <label>Mensagem gerada — pode editar antes de copiar</label>
+      <textarea id="mg_output" placeholder='Preencha os campos ao lado e clique em "Gerar mensagem".'></textarea>
+      <button class="btn primary" id="btnCopyMsg" style="align-self:flex-end;">📋 Copiar mensagem</button>
     </div>
   </div>
 </div>
@@ -1402,9 +1463,87 @@
   function closeGfinOverlay(){ document.getElementById("gfinOverlay").style.display = "none"; }
   document.getElementById("btnOpenGfin").addEventListener("click", openGfinOverlay);
   document.getElementById("btnCloseGfin").addEventListener("click", closeGfinOverlay);
+
+  /* ---------------- GERADOR DE MENSAGEM DE PROSPECÇÃO ---------------- */
+  var NICHO_HOOKS = {
+    dentista: "Quem procura tratamento pesquisa no Google antes de agendar — sem site, o consultório fica invisível justamente pra quem já está buscando confiança antes de marcar uma consulta.",
+    advogado: "Clientes pesquisam o escritório no Google antes de fechar — sem site, fica muito mais difícil transmitir credibilidade logo no primeiro contato.",
+    contador: "Empresas pesquisam antes de trocar de contador — um site profissional passa muito mais confiança do que só um cartão de visita ou um perfil no Instagram.",
+    loja_roupa: "Hoje quem pesquisa antes de comprar acaba só encontrando o Instagram — e isso faz a loja perder clientes que preferem ver o catálogo completo antes de decidir.",
+    imobiliaria: "Quem procura imóvel pesquisa online antes de escolher a imobiliária — sem site com os imóveis, vocês ficam atrás de quem já tem catálogo digital.",
+    corretor: "Clientes de imóvel pesquisam o corretor antes de fechar negócio — ter um site profissional, além do Instagram, passa muito mais credibilidade e autoridade.",
+    outro: "Notamos que o negócio ainda não tem um site — e isso pode estar fazendo vocês perderem clientes que pesquisam no Google antes de decidir onde comprar/contratar."
+  };
+  function fmtPrecoMsg(n){
+    n = Number(n)||0;
+    var inteiro = n % 1 === 0;
+    return "R$" + n.toLocaleString("pt-BR", inteiro ? {minimumFractionDigits:0, maximumFractionDigits:0} : {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function gerarMensagemProspeccao(){
+    var nichoSel = document.getElementById("mg_nicho").value;
+    var cidade = document.getElementById("mg_cidade").value.trim();
+    var min = Number(document.getElementById("mg_preco_min").value||0);
+    var max = Number(document.getElementById("mg_preco_max").value||0);
+    var oferta = Number(document.getElementById("mg_preco_oferta").value||0);
+    var hook = NICHO_HOOKS[nichoSel] || NICHO_HOOKS.outro;
+    var localeTxt = cidade ? "aqui de " + cidade : "aqui da região";
+    var temFaixa = min>0 && max>0;
+
+    var linhas = [];
+    linhas.push("Oi, bom dia! 👋");
+    linhas.push("");
+    linhas.push("Somos a Network Space, agência de criação de sites " + localeTxt + ". Estamos selecionando algumas empresas da região pra uma demonstração gratuita de site, e o seu negócio foi um dos escolhidos. " + hook);
+    linhas.push("");
+    linhas.push("Antes de mais nada, dá uma olhada em alguns sites que já entregamos, pra você ver que não é papo furado: 👉 https://www.networkspace.com.br/portfolio.html");
+    linhas.push("");
+    linhas.push("Vamos montar uma versão de demonstração do seu site, sem nenhum custo e sem compromisso. Você só vê o resultado pronto e decide se quer seguir.");
+    linhas.push("");
+    if(temFaixa){
+      linhas.push("Um site desse nível custa, em média, entre " + fmtPrecoMsg(min) + " e " + fmtPrecoMsg(max) + " no mercado.");
+    }
+    if(oferta>0){
+      linhas.push((temFaixa?"Mas as":"As") + " vagas dessa seleção são limitadas — e quem topar seguir agora garante o valor especial de " + fmtPrecoMsg(oferta) + ", bem abaixo do que praticamos normalmente.");
+      linhas.push("");
+      linhas.push("Sinceramente, não é todo dia que aparece uma oportunidade dessas pro seu negócio.");
+    }
+    linhas.push("");
+    linhas.push("Também temos sites por assinatura, a partir de R$79,90/mês, pra quem prefere não pagar tudo de uma vez.");
+    linhas.push("");
+    linhas.push("Podemos começar a demonstração hoje mesmo? Poucas vagas ainda disponíveis — chama a gente aqui! 🚀");
+    linhas.push("");
+    linhas.push("Network Space");
+    return linhas.join("\n");
+  }
+  document.getElementById("mg_nicho").addEventListener("change", function(){
+    document.getElementById("mg_nicho_outro_wrap").style.display = this.value==="outro" ? "flex":"none";
+  });
+  document.getElementById("btnGerarMsg").addEventListener("click", function(){
+    document.getElementById("mg_output").value = gerarMensagemProspeccao();
+  });
+  document.getElementById("btnCopyMsg").addEventListener("click", function(){
+    var btn = document.getElementById("btnCopyMsg");
+    var texto = document.getElementById("mg_output").value;
+    if(!texto){ return; }
+    var restaurar = function(){ btn.textContent = "📋 Copiar mensagem"; };
+    var copiaManual = function(){
+      var el = document.getElementById("mg_output"); el.select(); document.execCommand("copy");
+      btn.textContent = "Copiado ✓"; setTimeout(restaurar, 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(texto).then(function(){ btn.textContent = "Copiado ✓"; setTimeout(restaurar, 1800); }).catch(copiaManual);
+    } else {
+      copiaManual();
+    }
+  });
+  function openMsgGenOverlay(){ document.getElementById("msgGenOverlay").style.display = "flex"; }
+  function closeMsgGenOverlay(){ document.getElementById("msgGenOverlay").style.display = "none"; }
+  document.getElementById("btnOpenMsgGen").addEventListener("click", openMsgGenOverlay);
+  document.getElementById("btnCloseMsgGen").addEventListener("click", closeMsgGenOverlay);
+
   document.addEventListener("keydown", function(e){
     if(e.key==="Escape" && document.getElementById("pipelineOverlay").style.display!=="none") closePipelineOverlay();
     if(e.key==="Escape" && document.getElementById("gfinOverlay").style.display!=="none") closeGfinOverlay();
+    if(e.key==="Escape" && document.getElementById("msgGenOverlay").style.display!=="none") closeMsgGenOverlay();
   });
 
   function leadFilter(l){
