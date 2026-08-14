@@ -233,6 +233,20 @@
   .radar-legend{ display:flex; gap:12px; padding:6px 12px; border-top:1px solid var(--border); font-size:10px; color:var(--text-muted); flex:0 0 auto; }
   .radar-legend div{ display:flex; align-items:center; gap:4px; } .radar-legend .dot{ width:7px;height:7px;border-radius:50%; }
 
+  /* -------- gestão financeira -------- */
+  @keyframes gfinPop{ 0%{ opacity:0; transform:translateY(10px) scale(.96); } 100%{ opacity:1; transform:translateY(0) scale(1); } }
+  .gfin-body{ padding:12px; gap:12px; overflow-y:auto; }
+  .gfin-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; flex:0 0 auto; }
+  .gfin-kpi{ background:var(--surface-2); border:1px solid var(--border); border-top:2px solid var(--border-strong); border-radius:9px; padding:12px 14px; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) backwards; }
+  .gfin-kpi:nth-child(2){ animation-delay:.06s; } .gfin-kpi:nth-child(3){ animation-delay:.12s; }
+  .gfin-kpi .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; font-weight:800; letter-spacing:.4px; }
+  .gfin-kpi .v{ font-size:19px; font-weight:800; margin-top:5px; }
+  .gfin-kpi.in{ border-top-color:var(--success); } .gfin-kpi.in .v{ color:var(--success); }
+  .gfin-kpi.out{ border-top-color:var(--danger); } .gfin-kpi.out .v{ color:var(--danger); }
+  .gfin-kpi.bal{ border-top-color:var(--accent); }
+  .gfin-chart-wrap{ height:190px; flex:0 0 auto; position:relative; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .16s backwards; }
+  .gfin-table-wrap{ flex:1 1 auto; min-height:120px; overflow-y:auto; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .22s backwards; }
+
   /* -------- pipeline (full screen) -------- */
   .pipeline-cta{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--accent-soft); border:1px solid hsl(var(--h) var(--s) 58% / .4); color:var(--text); padding:10px 12px; border-radius:6px; font-weight:700; font-size:11.5px; }
   .pipeline-cta:hover{ border-color:var(--accent); }
@@ -408,7 +422,7 @@
       <div class="panel z-crm">
         <div id="primaryAgencia">
           <div class="crm-toolbar">
-            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button><button data-tab="cobrancas">Cobranças <span class="badge tabular" id="cobrancasBadge" style="display:none;">0</span></button></div>
+            <div class="crm-tabs"><button data-tab="lista" class="active">Lista</button><button data-tab="radar">Radar</button><button data-tab="reunioes">Reuniões <span class="badge tabular" id="reuniaoBadge" style="display:none;">0</span></button><button data-tab="clientes">Clientes</button><button data-tab="cadastro">Cadastro</button><button data-tab="cobrancas">Cobranças <span class="badge tabular" id="cobrancasBadge" style="display:none;">0</span></button><button data-tab="gestaofin">Gestão Financeira</button></div>
             <div class="temp-filter" id="tempFilter" title="Filtrar por temperatura">
               <button data-temp="all" class="active">Tudo</button><button data-temp="quente">🔥</button><button data-temp="morno">🌤</button><button data-temp="frio">❄</button>
             </div>
@@ -449,6 +463,29 @@
               <div class="field-hint" id="cobrancasResumo" style="padding:10px 4px 4px;"></div>
               <table><thead><tr><th>Cliente</th><th>Assinatura</th><th class="num">Valor/mês</th><th>Dia cobr.</th><th>Status</th><th></th></tr></thead><tbody id="crmCobrancasRows"></tbody></table>
               <div class="empty-state" id="cobrancasEmpty" style="display:none"><div class="big">💳</div><p>Nenhuma assinatura ativa ainda. Marque "assinatura" no lead (manutenção do site ou redes sociais) pra ela aparecer aqui.</p></div>
+            </div>
+          </div>
+          <div class="list-wrap" id="crmGestaoFin" style="display:none">
+            <div class="panel-body gfin-body" style="display:flex;flex-direction:column;">
+              <div class="crm-toolbar" style="padding:0;border:none;">
+                <div class="temp-filter" id="gfinPeriodFilter">
+                  <button data-periodo="7">7 dias</button>
+                  <button data-periodo="30" class="active">30 dias</button>
+                  <button data-periodo="mes">Este mês</button>
+                  <button data-periodo="90">90 dias</button>
+                </div>
+                <button class="btn primary sm" id="btnGfinReport" style="margin-left:auto;">📄 Gerar relatório</button>
+              </div>
+              <div class="gfin-kpis">
+                <div class="gfin-kpi in"><div class="l">Entradas no período</div><div class="v tabular" id="gfinEntradas">R$ 0</div></div>
+                <div class="gfin-kpi out"><div class="l">Saídas no período</div><div class="v tabular" id="gfinSaidas">R$ 0</div></div>
+                <div class="gfin-kpi bal"><div class="l">Saldo do período</div><div class="v tabular" id="gfinSaldo">R$ 0</div></div>
+              </div>
+              <div class="gfin-chart-wrap"><canvas id="gfinChart"></canvas><div class="empty-mini" id="gfinChartEmpty" style="display:none">Sem lançamentos neste período.</div></div>
+              <div class="gfin-table-wrap">
+                <table><thead><tr><th>Dia</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Saldo</th></tr></thead><tbody id="gfinRows"></tbody></table>
+                <div class="empty-state" id="gfinEmpty" style="display:none"><div class="big">📊</div><p>Nada lançado neste período ainda.</p></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1075,6 +1112,142 @@
     });
   }
 
+  /* ---------------- GESTÃO FINANCEIRA (entradas/saídas por dia) ---------------- */
+  var gfinPeriodo = "30";
+  var gfinChart;
+  function animateCount(el, to){
+    var from = 0, dur = 700, start = performance.now();
+    function step(now){
+      var p = Math.min(1, (now-start)/dur);
+      var eased = 1 - Math.pow(1-p, 3);
+      el.textContent = fmtBRL(from + (to-from)*eased);
+      if(p<1) requestAnimationFrame(step); else el.textContent = fmtBRL(to);
+    }
+    requestAnimationFrame(step);
+  }
+  function ymdLocal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function gfinPeriodDays(){
+    var days = []; var now = new Date();
+    if(gfinPeriodo==="mes"){
+      var d = new Date(now.getFullYear(), now.getMonth(), 1);
+      var todayYmd = ymdLocal(now);
+      while(true){ var dYmd = ymdLocal(d); days.push(dYmd); if(dYmd===todayYmd) break; d.setDate(d.getDate()+1); }
+      return days;
+    }
+    var n = parseInt(gfinPeriodo,10) || 30;
+    for(var i=n-1;i>=0;i--){ var dd = new Date(now); dd.setDate(dd.getDate()-i); days.push(ymdLocal(dd)); }
+    return days;
+  }
+  function gfinDailySeries(){
+    var ws = activeWs();
+    var days = gfinPeriodDays();
+    var isDropship = ws.tipo==="dropshipping";
+    var entradasByDay = {}, saidasByDay = {};
+    days.forEach(function(d){ entradasByDay[d]=0; saidasByDay[d]=0; });
+    if(isDropship){
+      ws.vendas.forEach(function(v){
+        if(v.data && entradasByDay.hasOwnProperty(v.data)) entradasByDay[v.data]+=Number(v.valorVenda||0);
+        if(v.data && saidasByDay.hasOwnProperty(v.data)) saidasByDay[v.data]+=Number(v.custoTotal||0);
+      });
+    } else {
+      ws.leads.forEach(function(l){
+        if(l.stage!=="fechado") return;
+        var dt = l.dataFechamento||l.data;
+        if(dt && entradasByDay.hasOwnProperty(dt)) entradasByDay[dt]+=Number(l.valor||0);
+      });
+    }
+    ws.expenses.forEach(function(e){ if(e.data && saidasByDay.hasOwnProperty(e.data)) saidasByDay[e.data]+=Number(e.valor||0); });
+    var saldoAcum = 0;
+    return days.map(function(d){
+      var entradas = entradasByDay[d], saidas = saidasByDay[d];
+      saldoAcum += entradas-saidas;
+      return { data:d, entradas:entradas, saidas:saidas, saldoDia:entradas-saidas, saldoAcum:saldoAcum };
+    });
+  }
+  function renderGestaoFin(){
+    var rows = gfinDailySeries();
+    var totalEntradas = rows.reduce(function(s,r){return s+r.entradas;},0);
+    var totalSaidas = rows.reduce(function(s,r){return s+r.saidas;},0);
+    var hasData = totalEntradas>0 || totalSaidas>0;
+    animateCount(document.getElementById("gfinEntradas"), totalEntradas);
+    animateCount(document.getElementById("gfinSaidas"), totalSaidas);
+    animateCount(document.getElementById("gfinSaldo"), totalEntradas-totalSaidas);
+    document.getElementById("gfinChartEmpty").style.display = hasData ? "none":"flex";
+    if(safeChart()){
+      var el = document.getElementById("gfinChart");
+      var ctx = el.getContext("2d");
+      if(gfinChart) gfinChart.destroy();
+      var stale = Chart.getChart(el); if(stale) stale.destroy();
+      var css = getComputedStyle(root);
+      var muted = css.getPropertyValue("--text-faint").trim();
+      var border = css.getPropertyValue("--border").trim();
+      var success = css.getPropertyValue("--success").trim();
+      var danger = css.getPropertyValue("--danger").trim();
+      var accent = css.getPropertyValue("--accent").trim();
+      var labels = rows.map(function(r){ var p=r.data.split("-"); return p[2]+"/"+p[1]; });
+      gfinChart = new Chart(ctx, {
+        data:{ labels:labels, datasets:[
+          { type:"bar", label:"Entradas", data:rows.map(function(r){return r.entradas;}), backgroundColor:success, borderRadius:3, barPercentage:.65, categoryPercentage:.7, order:2 },
+          { type:"bar", label:"Saídas", data:rows.map(function(r){return -r.saidas;}), backgroundColor:danger, borderRadius:3, barPercentage:.65, categoryPercentage:.7, order:2 },
+          { type:"line", label:"Saldo acumulado", data:rows.map(function(r){return r.saldoAcum;}), borderColor:accent, backgroundColor:"transparent", tension:.35, pointRadius:0, borderWidth:2, order:1, yAxisID:"y1" }
+        ]},
+        options:{
+          responsive:true, maintainAspectRatio:false, interaction:{intersect:false,mode:"index"},
+          plugins:{
+            legend:{ display:true, position:"top", align:"end", labels:{ color:muted, boxWidth:9, font:{size:9.5}, padding:10 } },
+            tooltip:{ callbacks:{ label:function(c){ return c.dataset.label+": "+fmtBRL(Math.abs(c.parsed.y)); } } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{ color:muted, font:{size:9}, maxRotation:0, autoSkip:true, maxTicksLimit:12 } },
+            y:{ grid:{color:border}, ticks:{ color:muted, font:{size:9}, callback:function(v){return "R$"+v;} } },
+            y1:{ position:"right", grid:{display:false}, ticks:{ color:accent, font:{size:9}, callback:function(v){return "R$"+v;} } }
+          }
+        }
+      });
+    }
+    document.getElementById("gfinEmpty").style.display = hasData ? "none":"flex";
+    document.getElementById("gfinRows").innerHTML = rows.slice().reverse().map(function(r){
+      var saldoColor = r.saldoDia>0 ? "var(--success)" : r.saldoDia<0 ? "var(--danger)" : "var(--text-faint)";
+      return "<tr><td>"+fmtDateShort(r.data)+"</td>"+
+        "<td class=\"num tabular\" style=\"color:var(--success)\">"+(r.entradas?fmtBRL(r.entradas):"—")+"</td>"+
+        "<td class=\"num tabular\" style=\"color:var(--danger)\">"+(r.saidas?fmtBRL(r.saidas):"—")+"</td>"+
+        "<td class=\"num tabular\" style=\"color:"+saldoColor+"\">"+fmtBRL(r.saldoDia)+"</td></tr>";
+    }).join("");
+  }
+  document.querySelectorAll("#gfinPeriodFilter button").forEach(function(b){
+    b.addEventListener("click", function(){
+      gfinPeriodo = b.getAttribute("data-periodo");
+      document.querySelectorAll("#gfinPeriodFilter button").forEach(function(x){ x.classList.toggle("active", x===b); });
+      renderGestaoFin();
+    });
+  });
+  document.getElementById("btnGfinReport").addEventListener("click", function(){
+    var ws = activeWs();
+    var rows = gfinDailySeries();
+    var totalEntradas = rows.reduce(function(s,r){return s+r.entradas;},0);
+    var totalSaidas = rows.reduce(function(s,r){return s+r.saidas;},0);
+    var periodoLabel = gfinPeriodo==="mes" ? "Este mês" : "Últimos "+gfinPeriodo+" dias";
+    var linhas = rows.slice().reverse().filter(function(r){return r.entradas||r.saidas;}).map(function(r){
+      return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+fmtDateShort(r.data)+'</td>'+
+        '<td style="padding:6px 4px;text-align:right;color:#1a7a44;">'+(r.entradas?fmtBRL(r.entradas):"—")+'</td>'+
+        '<td style="padding:6px 4px;text-align:right;color:#a3273a;">'+(r.saidas?fmtBRL(r.saidas):"—")+'</td>'+
+        '<td style="padding:6px 4px;text-align:right;">'+fmtBRL(r.saldoDia)+'</td></tr>';
+    }).join("");
+    if(!linhas) linhas = '<tr><td style="padding:10px 4px;color:#999;" colspan="4">Nenhum lançamento neste período.</td></tr>';
+    var html = '<div style="font-family:Georgia,serif;max-width:720px;margin:40px auto;color:#1a1a1a;">'+
+      '<h1 style="font-size:22px;margin:0 0 2px;">Gestão financeira — '+escapeHtml(ws.nome)+'</h1>'+
+      '<div style="color:#666;font-size:13px;margin-bottom:24px;">'+periodoLabel+'</div>'+
+      '<div style="display:flex;gap:24px;margin-bottom:28px;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:14px 0;">'+
+        '<div><div style="font-size:11px;color:#666;">ENTRADAS</div><div style="font-size:20px;">'+fmtBRL(totalEntradas)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">SAÍDAS</div><div style="font-size:20px;">'+fmtBRL(totalSaidas)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">SALDO</div><div style="font-size:20px;">'+fmtBRL(totalEntradas-totalSaidas)+'</div></div></div>'+
+      '<h2 style="font-size:15px;">Detalhamento por dia</h2>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><thead><tr style="text-align:left;border-bottom:2px solid #333;">'+
+      '<th style="padding:6px 4px;">Dia</th><th style="padding:6px 4px;text-align:right;">Entradas</th><th style="padding:6px 4px;text-align:right;">Saídas</th><th style="padding:6px 4px;text-align:right;">Saldo</th></tr></thead><tbody>'+
+      linhas+'</tbody></table><div style="margin-top:32px;font-size:10px;color:#999;">Gerado em '+new Date().toLocaleString("pt-BR")+'</div></div>';
+    document.getElementById("printReport").innerHTML = html; window.print();
+  });
+
   /* ---------------- CRM ---------------- */
   var crmTab = "lista"; var crmSearchTerm = ""; var crmTempFilter = "all"; var crmServicoFilter = "all";
   document.querySelectorAll(".crm-tabs button").forEach(function(b){
@@ -1087,11 +1260,13 @@
       document.getElementById("crmClientes").style.display = crmTab==="clientes" ? "flex":"none";
       document.getElementById("crmCadastro").style.display = crmTab==="cadastro" ? "flex":"none";
       document.getElementById("crmCobrancas").style.display = crmTab==="cobrancas" ? "flex":"none";
+      document.getElementById("crmGestaoFin").style.display = crmTab==="gestaofin" ? "flex":"none";
       if(crmTab==="radar"){ try{ renderRadar(); }catch(e){ console.error("radar falhou", e); } }
       if(crmTab==="reunioes"){ renderReunioes(); }
       if(crmTab==="clientes"){ renderClientes(); }
       if(crmTab==="cadastro"){ renderCadastro(); }
       if(crmTab==="cobrancas"){ renderCobrancas(); }
+      if(crmTab==="gestaofin"){ renderGestaoFin(); }
     });
   });
   document.getElementById("crmSearch").addEventListener("input", function(e){ crmSearchTerm = e.target.value.toLowerCase(); renderCrm(); });
@@ -1181,6 +1356,7 @@
     if(crmTab==="clientes"){ renderClientes(); }
     if(crmTab==="cadastro"){ renderCadastro(); }
     if(crmTab==="cobrancas"){ renderCobrancas(); }
+    if(crmTab==="gestaofin"){ renderGestaoFin(); }
     updateCobrancasBadge();
   }
   function renderClientes(){
