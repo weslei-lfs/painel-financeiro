@@ -404,8 +404,8 @@
   body.has-glass-bg thead th,
   body.has-glass-bg .pipeline-overlay-head,
   body.has-glass-bg .pipeline-overlay{
-    backdrop-filter: blur(26px) saturate(160%);
-    -webkit-backdrop-filter: blur(26px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
   }
   body.has-glass-bg .pipeline-overlay{ background: var(--bg-1); }
   body.has-glass-bg .panel{ box-shadow: 0 20px 50px -18px rgba(0,0,0,.35), var(--panel-shadow); }
@@ -944,10 +944,10 @@
   function applyGlobalTheme(){
     var t = THEMES[state.themeId] || THEMES["wes-tech"];
     root.style.setProperty("--bg", t.bg);
-    root.style.setProperty("--bg-1", toRgba(t.bg1, .2));
-    root.style.setProperty("--surface", toRgba(t.surface, .22));
-    root.style.setProperty("--surface-2", toRgba(t.surface2, .28));
-    root.style.setProperty("--surface-3", toRgba(t.surface3, .36));
+    root.style.setProperty("--bg-1", toRgba(t.bg1, .1));
+    root.style.setProperty("--surface", toRgba(t.surface, .12));
+    root.style.setProperty("--surface-2", toRgba(t.surface2, .16));
+    root.style.setProperty("--surface-3", toRgba(t.surface3, .22));
     root.style.setProperty("--border", t.modo==="light" ? "rgba(20,20,30,.10)" : "rgba(255,255,255,.14)");
     root.style.setProperty("--border-strong", t.modo==="light" ? "rgba(20,20,30,.22)" : "rgba(255,255,255,.30)");
     root.style.setProperty("--text", t.text);
@@ -977,8 +977,8 @@
     var bgImg = (state.themeBgImages && state.themeBgImages[state.themeId]) || t.bgImage;
     if(bgImg){
       root.style.setProperty("--glass-bg-image", "url('"+bgImg+"')");
-      root.style.setProperty("--glass-overlay-top", t.modo==="light" ? "rgba(255,255,255,.16)" : "rgba(4,7,14,.2)");
-      root.style.setProperty("--glass-overlay-bottom", t.modo==="light" ? "rgba(255,255,255,.34)" : "rgba(4,7,14,.4)");
+      root.style.setProperty("--glass-overlay-top", t.modo==="light" ? "rgba(255,255,255,.08)" : "rgba(4,7,14,.1)");
+      root.style.setProperty("--glass-overlay-bottom", t.modo==="light" ? "rgba(255,255,255,.2)" : "rgba(4,7,14,.24)");
       document.body.classList.add("has-glass-bg-image");
     } else {
       document.body.classList.remove("has-glass-bg-image");
