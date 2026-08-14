@@ -383,15 +383,16 @@
   #printReport{ display:none; }
   @media print{ #app > *:not(#printLayer){ display:none!important; } #printLayer{ display:block!important; } body{ background:#fff; } }
 
-  /* -------- tema Vidro: fundo com foto + componentes em vidro fosco -------- */
+  /* -------- todos os temas em vidro: superfícies translúcidas + blur, com imagem de fundo opcional por tema -------- */
+  body{ background:var(--bg); }
   #glassBgLayer{ display:none; }
-  body.has-glass-bg #glassBgLayer{
+  body.has-glass-bg-image #glassBgLayer{
     display:block; position:fixed; inset:0; z-index:0; pointer-events:none;
     background-image: var(--glass-bg-image); background-size:cover; background-position:center; background-repeat:no-repeat;
   }
-  body.has-glass-bg #glassBgLayer::after{
+  body.has-glass-bg-image #glassBgLayer::after{
     content:""; position:absolute; inset:0;
-    background: linear-gradient(180deg, rgba(4,7,14,.4), rgba(4,7,14,.62));
+    background: linear-gradient(180deg, var(--glass-overlay-top), var(--glass-overlay-bottom));
   }
   body.has-glass-bg #app{ background: radial-gradient(ellipse 900px 500px at 8% -10%, hsl(var(--h) 60% 30% / .14), transparent 60%); }
   body.has-glass-bg .panel,
@@ -406,8 +407,14 @@
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
   }
-  body.has-glass-bg .pipeline-overlay{ background: rgba(9,13,24,.4); }
-  body.has-glass-bg .panel{ box-shadow: 0 20px 50px -18px rgba(0,0,0,.55), var(--panel-shadow); }
+  body.has-glass-bg .pipeline-overlay{ background: var(--bg-1); }
+  body.has-glass-bg .panel{ box-shadow: 0 20px 50px -18px rgba(0,0,0,.35), var(--panel-shadow); }
+
+  /* -------- upload de imagem de fundo por tema -------- */
+  .theme-bg-section{ margin-top:14px; }
+  .theme-bg-row{ display:flex; gap:10px; align-items:center; }
+  .theme-bg-preview{ width:84px; height:54px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface-2) center/cover no-repeat; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:8.5px; color:var(--text-faint); text-align:center; overflow:hidden; }
+  .theme-bg-actions{ display:flex; flex-direction:column; gap:6px; }
 </style>
 
 <div id="glassBgLayer"></div>
@@ -545,6 +552,18 @@
           <div>
             <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Tema do painel</div>
             <div class="theme-grid" id="themeGrid"></div>
+            <div class="theme-bg-section">
+              <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Imagem de fundo — tema "<span id="themeBgActiveName">—</span>"</div>
+              <div class="theme-bg-row">
+                <div class="theme-bg-preview" id="themeBgPreview">Sem imagem</div>
+                <div class="theme-bg-actions">
+                  <input type="file" id="themeBgFile" accept="image/*" style="display:none;">
+                  <button class="btn sm" id="btnThemeBgUpload">Enviar imagem</button>
+                  <button class="btn sm" id="btnThemeBgRemove" style="display:none;">Remover</button>
+                </div>
+              </div>
+              <div class="field-hint" style="margin-top:6px;">Fica salva neste navegador, uma imagem por tema. Ideal: foto grande, no formato paisagem.</div>
+            </div>
           </div>
           <div>
             <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Cor de destaque do negócio</div>
@@ -843,6 +862,7 @@
   }
   function migrateWorkspaces(parsed){
     parsed.themeId = parsed.themeId || "wes-tech";
+    parsed.themeBgImages = parsed.themeBgImages && typeof parsed.themeBgImages === "object" ? parsed.themeBgImages : {};
     if(!parsed.empresa || typeof parsed.empresa !== "object") parsed.empresa = { dominio:"", vencimentoDominio:"", emailProfissional:"" };
     parsed.workspaces.forEach(function(ws){
       ws.activityLog = ws.activityLog || [];
@@ -910,18 +930,26 @@
     "ametista": { nome:"Ametista", modo:"dark", bg:"#0d0818", bg1:"#120b22", surface:"#180f2c", surface2:"#221640", surface3:"#2e1e54", border:"#4a3170", borderStrong:"#6b479c", text:"#f3ecff", textMuted:"#b3a0d4", textFaint:"#8874ab", shadow:"0 4px 20px rgba(139,71,220,.22)", accentInk:"#0d0818", success:"#2fd480", warning:"#ffb648", danger:"#ff5470" },
     "menta": { nome:"Menta", modo:"light", bg:"#f2f8f5", bg1:"#e7f2ec", surface:"#ffffff", surface2:"#e9f3ee", surface3:"#d7ebe1", border:"#c3ddd1", borderStrong:"#a3c9b7", text:"#142520", textMuted:"#4d6b5e", textFaint:"#789284", shadow:"0 2px 10px rgba(20,60,40,.10)", accentInk:"#0c1712", success:"#12875a", warning:"#a15a06", danger:"#c62b3f" },
     "rose": { nome:"Rosé", modo:"light", bg:"#fbf2f3", bg1:"#f6e6e8", surface:"#ffffff", surface2:"#f8e9eb", surface3:"#f0d6da", border:"#e2bec4", borderStrong:"#cf9aa4", text:"#2a1418", textMuted:"#74505a", textFaint:"#9c7883", shadow:"0 2px 10px rgba(150,40,70,.10)", accentInk:"#1c0d10", success:"#187a4f", warning:"#a15606", danger:"#b3272f" },
-    "vidro": { nome:"Vidro", modo:"dark", glass:true, bgImage:"assets/theme-vidro-bg.jpg", bg:"#070b14", bg1:"rgba(9,13,24,.4)", surface:"rgba(19,25,40,.42)", surface2:"rgba(30,39,60,.5)", surface3:"rgba(43,54,80,.58)", border:"rgba(255,255,255,.16)", borderStrong:"rgba(255,255,255,.32)", text:"#f2f5fb", textMuted:"#b7c2d6", textFaint:"#8493ac", shadow:"0 8px 34px rgba(0,0,0,.5)", accentInk:"#050810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470", swBg:"#0a1830", swSurface2:"#123a66", swSurface3:"#1f5fa8" }
+    "vidro": { nome:"Vidro", modo:"dark", bgImage:"assets/theme-vidro-bg.jpg", bg:"#070b14", bg1:"#090d18", surface:"#131928", surface2:"#1e273c", surface3:"#2b3650", border:"#3d4a6b", borderStrong:"#55638c", text:"#f2f5fb", textMuted:"#b7c2d6", textFaint:"#8493ac", shadow:"0 8px 34px rgba(0,0,0,.5)", accentInk:"#050810", success:"#2fd480", warning:"#ffb648", danger:"#ff5470", swBg:"#0a1830", swSurface2:"#123a66", swSurface3:"#1f5fa8" }
   };
   var THEME_ORDER = ["wes-tech","vidro","meia-noite","onix","terminal","safira","perola","artico","grafite-claro","ambar","ametista","menta","rose"];
+  function toRgba(colorStr, alpha){
+    if(!colorStr) return colorStr;
+    if(colorStr.indexOf("rgb")===0) return colorStr;
+    var hex = colorStr.replace("#","");
+    if(hex.length===3) hex = hex.split("").map(function(c){return c+c;}).join("");
+    var r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16);
+    return "rgba("+r+","+g+","+b+","+alpha+")";
+  }
   function applyGlobalTheme(){
     var t = THEMES[state.themeId] || THEMES["wes-tech"];
     root.style.setProperty("--bg", t.bg);
-    root.style.setProperty("--bg-1", t.bg1);
-    root.style.setProperty("--surface", t.surface);
-    root.style.setProperty("--surface-2", t.surface2);
-    root.style.setProperty("--surface-3", t.surface3);
-    root.style.setProperty("--border", t.border);
-    root.style.setProperty("--border-strong", t.borderStrong);
+    root.style.setProperty("--bg-1", toRgba(t.bg1, .4));
+    root.style.setProperty("--surface", toRgba(t.surface, .42));
+    root.style.setProperty("--surface-2", toRgba(t.surface2, .5));
+    root.style.setProperty("--surface-3", toRgba(t.surface3, .58));
+    root.style.setProperty("--border", t.modo==="light" ? "rgba(20,20,30,.10)" : "rgba(255,255,255,.14)");
+    root.style.setProperty("--border-strong", t.modo==="light" ? "rgba(20,20,30,.22)" : "rgba(255,255,255,.30)");
     root.style.setProperty("--text", t.text);
     root.style.setProperty("--text-muted", t.textMuted);
     root.style.setProperty("--text-faint", t.textFaint);
@@ -943,8 +971,18 @@
     var markFile = t.modo==="light" ? "logo-full-lockup-light.png" : "logo-full-lockup-dark.png";
     var sideMark = document.getElementById("sideMark");
     if(sideMark) sideMark.src = markFile;
-    document.body.classList.toggle("has-glass-bg", !!t.glass);
-    if(t.glass) root.style.setProperty("--glass-bg-image", "url('"+t.bgImage+"')");
+    // todo tema agora é "vidro": superfícies translúcidas com blur; a imagem de fundo
+    // vem do upload salvo pro tema (Configurações) ou, se não houver, da imagem padrão do tema.
+    document.body.classList.add("has-glass-bg");
+    var bgImg = (state.themeBgImages && state.themeBgImages[state.themeId]) || t.bgImage;
+    if(bgImg){
+      root.style.setProperty("--glass-bg-image", "url('"+bgImg+"')");
+      root.style.setProperty("--glass-overlay-top", t.modo==="light" ? "rgba(255,255,255,.32)" : "rgba(4,7,14,.4)");
+      root.style.setProperty("--glass-overlay-bottom", t.modo==="light" ? "rgba(255,255,255,.58)" : "rgba(4,7,14,.62)");
+      document.body.classList.add("has-glass-bg-image");
+    } else {
+      document.body.classList.remove("has-glass-bg-image");
+    }
   }
 
   /* ---------------- WORKSPACE UI ---------------- */
@@ -1826,7 +1864,52 @@
         '<span class="sw-preview" style="background:'+(t.swBg||t.bg)+'"><i style="background:'+(t.swSurface2||t.surface2)+'"></i><i style="background:'+(t.swSurface3||t.surface3)+'"></i></span>'+
         '<span class="sw-name">'+t.nome+'</span></button>';
     }).join("");
+    renderThemeBgUpload();
   }
+  function renderThemeBgUpload(){
+    var t = THEMES[state.themeId] || THEMES["wes-tech"];
+    document.getElementById("themeBgActiveName").textContent = t.nome;
+    var custom = state.themeBgImages && state.themeBgImages[state.themeId];
+    var preview = document.getElementById("themeBgPreview");
+    var img = custom || t.bgImage;
+    if(img){ preview.style.backgroundImage = "url('"+img+"')"; preview.textContent = ""; }
+    else { preview.style.backgroundImage = "none"; preview.textContent = "Sem imagem"; }
+    document.getElementById("btnThemeBgRemove").style.display = custom ? "inline-flex" : "none";
+  }
+  function resizeImageForBg(file, callback){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var maxW = 1920;
+        var scale = Math.min(1, maxW / img.width);
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  document.getElementById("btnThemeBgUpload").addEventListener("click", function(){ document.getElementById("themeBgFile").click(); });
+  document.getElementById("themeBgFile").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    resizeImageForBg(file, function(dataUrl){
+      state.themeBgImages = state.themeBgImages || {};
+      state.themeBgImages[state.themeId] = dataUrl;
+      try{ saveState(); }
+      catch(err){ delete state.themeBgImages[state.themeId]; alert("Essa imagem é grande demais pra salvar neste navegador. Tenta uma imagem menor."); return; }
+      applyGlobalTheme(); renderThemeBgUpload();
+    });
+  });
+  document.getElementById("btnThemeBgRemove").addEventListener("click", function(){
+    if(state.themeBgImages) delete state.themeBgImages[state.themeId];
+    saveState(); applyGlobalTheme(); renderThemeBgUpload();
+  });
   document.getElementById("themeGrid").addEventListener("click", function(e){
     var b = e.target.closest("button[data-theme-id]"); if(!b) return;
     state.themeId = b.getAttribute("data-theme-id");
