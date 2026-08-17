@@ -262,6 +262,15 @@
   .gfin-table-wrap{ flex:1 1 auto; min-height:160px; overflow-y:auto; animation:gfinPop .5s cubic-bezier(.16,.8,.24,1) .22s backwards; }
   @media (max-width:760px){ .gfin-kpis{ grid-template-columns:1fr; } .gfin-kpis-2{ grid-template-columns:1fr; } }
 
+  /* -------- área do contador -------- */
+  .contador-subhead{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; font-weight:800; letter-spacing:.4px; margin:6px 2px 0; }
+  .year-filter{ display:flex; gap:2px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; padding:2px; flex:0 0 auto; }
+  .year-filter button{ border:none; background:none; padding:0 10px; height:26px; font-size:11px; font-weight:700; border-radius:5px; color:var(--text-muted); font-family:var(--mono); }
+  .year-filter button:hover{ color:var(--text); }
+  .year-filter button.active{ background:var(--surface-3); color:var(--text); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  @keyframes contadorMoodPop{ 0%{ opacity:0; transform:scale(.5) rotate(-6deg); } 60%{ opacity:1; transform:scale(1.12) rotate(3deg); } 100%{ transform:scale(1) rotate(0deg); } }
+  .contador-mood-badge{ display:inline-block; animation:contadorMoodPop .55s cubic-bezier(.34,1.56,.64,1) backwards; }
+
   /* -------- gerador de mensagem -------- */
   .msggen-body{ flex:1; min-height:0; overflow-y:auto; padding:24px 26px 30px; display:grid; grid-template-columns:280px 1fr; gap:22px; align-items:start; }
   .msggen-form{ display:flex; flex-direction:column; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:18px; }
@@ -439,6 +448,7 @@
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
       <button class="pipeline-cta" id="btnOpenGfin"><span>📊 Gestão Financeira</span></button>
+      <button class="pipeline-cta" id="btnOpenContador"><span>🧾 Área do Contador</span></button>
       <button class="pipeline-cta" id="btnOpenMsgGen"><span>✉️ Gerador de Mensagem</span></button>
     </div>
 
@@ -647,6 +657,42 @@
     <div class="gfin-table-wrap">
       <table><thead><tr><th>Dia</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Saldo</th></tr></thead><tbody id="gfinRows"></tbody></table>
       <div class="empty-state" id="gfinEmpty" style="display:none"><div class="big">📊</div><p>Nada lançado neste período ainda.</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="contadorOverlay" class="pipeline-overlay" style="display:none">
+  <div class="pipeline-overlay-head">
+    <h2>Área do Contador — <span id="contadorWsName"></span></h2>
+    <div class="pipeline-overlay-actions">
+      <div class="year-filter" id="contadorYearFilter" title="Ano"></div>
+      <button class="btn primary sm" id="btnContadorReport">📄 Gerar relatório</button>
+      <button class="btn sm" id="btnContadorCsv">⬇️ Baixar CSV</button>
+      <button class="btn sm" id="btnCloseContador">✕ Fechar (Esc)</button>
+    </div>
+  </div>
+  <div class="gfin-full-body">
+    <div class="field-hint" style="max-width:680px;">Tudo pronto pra declaração: cálculo por caixa (dinheiro que realmente entrou/saiu, na data em que entrou/saiu), com CPF/CNPJ de quem pagou quando cadastrado no cliente. É só escolher o ano, conferir e mandar pro contador — nada pra ele garimpar.</div>
+    <div class="gfin-kpis">
+      <div class="gfin-kpi in"><div class="l">Entradas no ano</div><div class="v tabular" id="contadorEntradas">R$ 0</div></div>
+      <div class="gfin-kpi out"><div class="l">Saídas no ano</div><div class="v tabular" id="contadorSaidas">R$ 0</div></div>
+      <div class="gfin-kpi bal"><div class="l">Lucro líquido do ano</div><div class="v tabular" id="contadorSaldo">R$ 0</div></div>
+    </div>
+    <div class="gfin-kpis gfin-kpis-2">
+      <div class="gfin-kpi margem"><div class="l">Margem de lucro</div><div class="v tabular" id="contadorMargem">0%</div><div class="s" id="contadorMood">—</div></div>
+      <div class="gfin-cats">
+        <div class="l">Saídas por categoria no ano</div>
+        <div id="contadorCatBreakdown" class="gfin-cat-list"></div>
+        <div class="empty-mini" id="contadorCatEmpty" style="display:none;">Sem gastos categorizados neste ano.</div>
+      </div>
+    </div>
+    <div class="gfin-chart-wrap gfin-chart-wrap-full"><canvas id="contadorChart"></canvas><div class="empty-mini" id="contadorChartEmpty" style="display:none">Sem lançamentos neste ano.</div></div>
+    <div class="contador-subhead">Resumo por mês</div>
+    <table><thead><tr><th>Mês</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Saldo</th></tr></thead><tbody id="contadorMonthRows"></tbody></table>
+    <div class="contador-subhead">Lançamentos do ano (entradas e saídas)</div>
+    <div class="gfin-table-wrap">
+      <table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>CPF/CNPJ</th><th class="num">Entrada</th><th class="num">Saída</th></tr></thead><tbody id="contadorRows"></tbody></table>
+      <div class="empty-state" id="contadorEmpty" style="display:none"><div class="big">🧾</div><p>Nada lançado neste ano ainda.</p></div>
     </div>
   </div>
 </div>
@@ -1529,6 +1575,239 @@
   function closeGfinOverlay(){ document.getElementById("gfinOverlay").style.display = "none"; }
   document.getElementById("btnOpenGfin").addEventListener("click", openGfinOverlay);
   document.getElementById("btnCloseGfin").addEventListener("click", closeGfinOverlay);
+
+  /* ---------------- ÁREA DO CONTADOR ---------------- */
+  var contadorChart, contadorAno = null;
+  function contadorYears(){
+    var ws = activeWs();
+    var isDropship = ws.tipo==="dropshipping";
+    var years = {};
+    function add(dateStr){ if(dateStr){ var y=parseInt(String(dateStr).slice(0,4),10); if(y) years[y]=true; } }
+    if(isDropship){
+      ws.vendas.forEach(function(v){ add(v.data); });
+    } else {
+      ws.leads.forEach(function(l){
+        if(l.stage==="fechado"){
+          var parcelas = (l.pagamento && l.pagamento.parcelado) ? (l.pagamento.parcelas||[]) : [];
+          if(parcelas.length){ parcelas.forEach(function(pc){ if(pc.pago) add(pc.dataPagamento); }); }
+          else { add(l.dataFechamento||l.data); }
+        }
+        if(l.assinatura) (l.assinatura.ciclos||[]).forEach(function(c){ if(c.pago) add(c.dataPagamento); });
+        if(l.assinaturaSocial) (l.assinaturaSocial.ciclos||[]).forEach(function(c){ if(c.pago) add(c.dataPagamento); });
+      });
+    }
+    ws.expenses.forEach(function(e){ add(e.data); });
+    var list = Object.keys(years).map(Number).sort(function(a,b){ return b-a; });
+    var thisYear = new Date().getFullYear();
+    if(list.indexOf(thisYear)===-1) list.unshift(thisYear);
+    return list;
+  }
+  function contadorTransactions(ano){
+    var ws = activeWs();
+    var isDropship = ws.tipo==="dropshipping";
+    var out = [];
+    function inYear(d){ return d && String(d).slice(0,4)===String(ano); }
+    if(isDropship){
+      ws.vendas.forEach(function(v){
+        if(!inYear(v.data)) return;
+        out.push({ data:v.data, tipo:"entrada", descricao:"Venda — "+(v.produtoNome||"Produto"), categoria:"Vendas", doc:"", valor:Number(v.valorVenda||0) });
+        if(Number(v.custoTotal||0)>0) out.push({ data:v.data, tipo:"saida", descricao:"Custo — "+(v.produtoNome||"Produto"), categoria:"Fornecedor / Produto", doc:"", valor:Number(v.custoTotal||0) });
+      });
+    } else {
+      ws.leads.forEach(function(l){
+        var doc = (l.cadastro && l.cadastro.cpfCnpj) || "";
+        if(l.stage==="fechado"){
+          var parcelas = (l.pagamento && l.pagamento.parcelado) ? (l.pagamento.parcelas||[]) : [];
+          if(parcelas.length){
+            parcelas.forEach(function(pc,i){
+              if(pc.pago && inYear(pc.dataPagamento)) out.push({ data:pc.dataPagamento, tipo:"entrada", descricao:"Parcela "+(i+1)+"/"+parcelas.length+" — "+l.nome, categoria:"Serviço prestado", doc:doc, valor:Number(pc.valor||0) });
+            });
+          } else if(inYear(l.dataFechamento||l.data)){
+            out.push({ data:l.dataFechamento||l.data, tipo:"entrada", descricao:"Pagamento à vista — "+l.nome, categoria:"Serviço prestado", doc:doc, valor:Number(l.valor||0) });
+          }
+        }
+        if(l.assinatura) (l.assinatura.ciclos||[]).forEach(function(c){
+          if(c.pago && inYear(c.dataPagamento)) out.push({ data:c.dataPagamento, tipo:"entrada", descricao:"Assinatura site — "+l.nome, categoria:"Assinatura", doc:doc, valor:Number(l.assinatura.valorMensal||0) });
+        });
+        if(l.assinaturaSocial) (l.assinaturaSocial.ciclos||[]).forEach(function(c){
+          if(c.pago && inYear(c.dataPagamento)) out.push({ data:c.dataPagamento, tipo:"entrada", descricao:"Assinatura redes sociais — "+l.nome, categoria:"Assinatura", doc:doc, valor:Number(l.assinaturaSocial.valorMensal||0) });
+        });
+      });
+    }
+    ws.expenses.forEach(function(e){
+      if(!inYear(e.data)) return;
+      out.push({ data:e.data, tipo:"saida", descricao:e.descricao||e.categoria||"Gasto", categoria:e.categoria||"Outros", doc:"", valor:Number(e.valor||0) });
+    });
+    out.sort(function(a,b){ return a.data<b.data?-1:a.data>b.data?1:0; });
+    return out;
+  }
+  function contadorDefaultYear(years){
+    var thisYear = new Date().getFullYear();
+    if(years.indexOf(thisYear)>-1 && contadorTransactions(thisYear).length) return thisYear;
+    var lastYear = thisYear-1;
+    if(years.indexOf(lastYear)>-1 && contadorTransactions(lastYear).length) return lastYear;
+    return years[0];
+  }
+  function renderContador(){
+    var ws = activeWs();
+    document.getElementById("contadorWsName").textContent = ws.nome;
+    var years = contadorYears();
+    if(!contadorAno || years.indexOf(contadorAno)===-1) contadorAno = contadorDefaultYear(years);
+    document.getElementById("contadorYearFilter").innerHTML = years.map(function(y){
+      return '<button data-ano="'+y+'" class="'+(y===contadorAno?"active":"")+'">'+y+'</button>';
+    }).join("");
+    var txs = contadorTransactions(contadorAno);
+    var hasData = txs.length>0;
+    var totalEntradas = txs.filter(function(t){return t.tipo==="entrada";}).reduce(function(s,t){return s+t.valor;},0);
+    var totalSaidas = txs.filter(function(t){return t.tipo==="saida";}).reduce(function(s,t){return s+t.valor;},0);
+    var lucro = totalEntradas-totalSaidas;
+    var margem = totalEntradas>0 ? (lucro/totalEntradas*100) : 0;
+    animateCount(document.getElementById("contadorEntradas"), totalEntradas);
+    animateCount(document.getElementById("contadorSaidas"), totalSaidas);
+    animateCount(document.getElementById("contadorSaldo"), lucro);
+    var margemEl = document.getElementById("contadorMargem");
+    margemEl.textContent = totalEntradas>0 ? margem.toFixed(1).replace(".",",")+"%" : "—";
+    margemEl.style.color = !totalEntradas ? "" : margem>=0 ? "var(--success)" : "var(--danger)";
+    var moodEl = document.getElementById("contadorMood");
+    if(!hasData) moodEl.innerHTML = "Sem lançamentos neste ano ainda.";
+    else if(lucro>0) moodEl.innerHTML = '<span class="contador-mood-badge">📈 Ano no azul — trabalho reconhecido</span>';
+    else if(lucro<0) moodEl.innerHTML = '<span class="contador-mood-badge">🔧 Ano de ajuste, sem crise</span>';
+    else moodEl.innerHTML = "Entradas e saídas empataram.";
+    var catTotals = {};
+    txs.forEach(function(t){ if(t.tipo==="saida") catTotals[t.categoria] = (catTotals[t.categoria]||0)+t.valor; });
+    var cats = Object.keys(catTotals).sort(function(a,b){ return catTotals[b]-catTotals[a]; });
+    var catTotal = cats.reduce(function(s,c){ return s+catTotals[c]; },0);
+    document.getElementById("contadorCatEmpty").style.display = cats.length ? "none":"block";
+    document.getElementById("contadorCatBreakdown").innerHTML = cats.map(function(c){
+      var pct = catTotal>0 ? (catTotals[c]/catTotal*100) : 0;
+      return '<div class="gfin-cat-row"><span class="dot" style="background:'+catColor(c)+'"></span>'+
+        '<span class="name">'+escapeHtml(c)+'</span>'+
+        '<span class="bar"><i style="width:'+pct.toFixed(0)+'%;background:'+catColor(c)+'"></i></span>'+
+        '<span class="val">'+fmtBRL(catTotals[c])+'</span></div>';
+    }).join("");
+    var months = [];
+    for(var m=0;m<12;m++){
+      var mm = String(m+1).padStart(2,"0");
+      var ent=0, sai=0;
+      txs.forEach(function(t){ if(t.data && t.data.slice(5,7)===mm){ if(t.tipo==="entrada") ent+=t.valor; else sai+=t.valor; } });
+      var label = new Date(contadorAno, m, 1).toLocaleDateString("pt-BR",{month:"short"}).replace(".","");
+      months.push({ label:label, entradas:ent, saidas:sai, saldo:ent-sai });
+    }
+    document.getElementById("contadorMonthRows").innerHTML = months.map(function(mo){
+      var saldoColor = mo.saldo>0?"var(--success)":mo.saldo<0?"var(--danger)":"var(--text-faint)";
+      return "<tr><td style='text-transform:capitalize;'>"+mo.label+"</td>"+
+        "<td class='num tabular' style='color:var(--success)'>"+(mo.entradas?fmtBRL(mo.entradas):"—")+"</td>"+
+        "<td class='num tabular' style='color:var(--danger)'>"+(mo.saidas?fmtBRL(mo.saidas):"—")+"</td>"+
+        "<td class='num tabular' style='color:"+saldoColor+"'>"+fmtBRL(mo.saldo)+"</td></tr>";
+    }).join("");
+    document.getElementById("contadorChartEmpty").style.display = hasData ? "none":"flex";
+    if(safeChart()){
+      var el = document.getElementById("contadorChart");
+      var ctx = el.getContext("2d");
+      if(contadorChart) contadorChart.destroy();
+      var stale = Chart.getChart(el); if(stale) stale.destroy();
+      var css = getComputedStyle(root);
+      var muted = css.getPropertyValue("--text-faint").trim();
+      var border = css.getPropertyValue("--border").trim();
+      var success = css.getPropertyValue("--success").trim();
+      var danger = css.getPropertyValue("--danger").trim();
+      contadorChart = new Chart(ctx, {
+        data:{ labels: months.map(function(mo){return mo.label;}), datasets:[
+          { type:"bar", label:"Entradas", data:months.map(function(mo){return mo.entradas;}), backgroundColor:success, borderRadius:3, barPercentage:.65, categoryPercentage:.7 },
+          { type:"bar", label:"Saídas", data:months.map(function(mo){return -mo.saidas;}), backgroundColor:danger, borderRadius:3, barPercentage:.65, categoryPercentage:.7 }
+        ]},
+        options:{
+          responsive:true, maintainAspectRatio:false, interaction:{intersect:false,mode:"index"},
+          plugins:{
+            legend:{ display:true, position:"top", align:"end", labels:{ color:muted, boxWidth:9, font:{size:9.5}, padding:10 } },
+            tooltip:{ callbacks:{ label:function(c){ return c.dataset.label+": "+fmtBRL(Math.abs(c.parsed.y)); } } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{ color:muted, font:{size:9} } },
+            y:{ grid:{color:border}, ticks:{ color:muted, font:{size:9}, callback:function(v){return "R$"+v;} } }
+          }
+        }
+      });
+    }
+    document.getElementById("contadorEmpty").style.display = hasData ? "none":"flex";
+    document.getElementById("contadorRows").innerHTML = txs.map(function(t){
+      return "<tr><td>"+fmtDateShort(t.data)+"</td><td>"+escapeHtml(t.descricao)+"</td><td>"+escapeHtml(t.categoria)+"</td><td>"+escapeHtml(t.doc||"—")+"</td>"+
+        "<td class='num tabular' style='color:var(--success)'>"+(t.tipo==="entrada"?fmtBRL(t.valor):"—")+"</td>"+
+        "<td class='num tabular' style='color:var(--danger)'>"+(t.tipo==="saida"?fmtBRL(t.valor):"—")+"</td></tr>";
+    }).join("");
+  }
+  function openContadorOverlay(){
+    document.getElementById("contadorOverlay").style.display = "flex";
+    renderContador();
+  }
+  function closeContadorOverlay(){ document.getElementById("contadorOverlay").style.display = "none"; }
+  document.getElementById("btnOpenContador").addEventListener("click", openContadorOverlay);
+  document.getElementById("btnCloseContador").addEventListener("click", closeContadorOverlay);
+  document.getElementById("contadorYearFilter").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-ano]"); if(!b) return;
+    contadorAno = parseInt(b.getAttribute("data-ano"),10);
+    renderContador();
+  });
+  document.getElementById("btnContadorReport").addEventListener("click", function(){
+    var ws = activeWs();
+    var txs = contadorTransactions(contadorAno);
+    var totalEntradas = txs.filter(function(t){return t.tipo==="entrada";}).reduce(function(s,t){return s+t.valor;},0);
+    var totalSaidas = txs.filter(function(t){return t.tipo==="saida";}).reduce(function(s,t){return s+t.valor;},0);
+    var lucro = totalEntradas-totalSaidas;
+    var margem = totalEntradas>0 ? (lucro/totalEntradas*100) : 0;
+    var catTotals = {};
+    txs.forEach(function(t){ if(t.tipo==="saida") catTotals[t.categoria] = (catTotals[t.categoria]||0)+t.valor; });
+    var cats = Object.keys(catTotals).sort(function(a,b){ return catTotals[b]-catTotals[a]; });
+    var catsHtml = cats.length ? cats.map(function(c){
+      var pct = totalSaidas>0 ? (catTotals[c]/totalSaidas*100) : 0;
+      return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(c)+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(catTotals[c])+'</td><td style="padding:6px 4px;text-align:right;">'+pct.toFixed(0)+'%</td></tr>';
+    }).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhuma saída categorizada neste ano.</td></tr>';
+    var linhasHtml = txs.length ? txs.map(function(t){
+      return '<tr style="border-bottom:1px solid #eee;"><td style="padding:5px 4px;">'+fmtDateShort(t.data)+'</td>'+
+        '<td style="padding:5px 4px;">'+escapeHtml(t.descricao)+'</td>'+
+        '<td style="padding:5px 4px;">'+escapeHtml(t.categoria)+'</td>'+
+        '<td style="padding:5px 4px;">'+escapeHtml(t.doc||"—")+'</td>'+
+        '<td style="padding:5px 4px;text-align:right;color:#1a7a44;">'+(t.tipo==="entrada"?fmtBRL(t.valor):"—")+'</td>'+
+        '<td style="padding:5px 4px;text-align:right;color:#a3273a;">'+(t.tipo==="saida"?fmtBRL(t.valor):"—")+'</td></tr>';
+    }).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="6">Nenhum lançamento neste ano.</td></tr>';
+    var html = '<div style="font-family:Georgia,serif;max-width:760px;margin:40px auto;color:#1a1a1a;">'+
+      '<h1 style="font-size:22px;margin:0 0 2px;">Extrato para o contador — '+escapeHtml(ws.nome)+'</h1>'+
+      '<div style="color:#666;font-size:13px;margin-bottom:24px;">Ano de '+contadorAno+' · cálculo por caixa (dinheiro que realmente entrou/saiu, na data em que entrou/saiu)</div>'+
+      '<div style="display:flex;gap:24px;margin-bottom:28px;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:14px 0;flex-wrap:wrap;">'+
+        '<div><div style="font-size:11px;color:#666;">ENTRADAS</div><div style="font-size:20px;">'+fmtBRL(totalEntradas)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">SAÍDAS</div><div style="font-size:20px;">'+fmtBRL(totalSaidas)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">LUCRO LÍQUIDO</div><div style="font-size:20px;">'+fmtBRL(lucro)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">MARGEM</div><div style="font-size:20px;">'+(totalEntradas>0?margem.toFixed(1).replace(".",",")+"%":"—")+'</div></div></div>'+
+      '<h2 style="font-size:15px;">Saídas por categoria</h2>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;"><thead><tr style="text-align:left;border-bottom:2px solid #333;">'+
+      '<th style="padding:6px 4px;">Categoria</th><th style="padding:6px 4px;text-align:right;">Valor</th><th style="padding:6px 4px;text-align:right;">%</th></tr></thead><tbody>'+catsHtml+'</tbody></table>'+
+      '<h2 style="font-size:15px;">Lançamentos do ano</h2>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:24px;"><thead><tr style="text-align:left;border-bottom:2px solid #333;">'+
+      '<th style="padding:5px 4px;">Data</th><th style="padding:5px 4px;">Descrição</th><th style="padding:5px 4px;">Categoria</th><th style="padding:5px 4px;">CPF/CNPJ</th><th style="padding:5px 4px;text-align:right;">Entrada</th><th style="padding:5px 4px;text-align:right;">Saída</th></tr></thead><tbody>'+
+      linhasHtml+'</tbody></table><div style="margin-top:32px;font-size:10px;color:#999;">Gerado em '+new Date().toLocaleString("pt-BR")+'</div></div>';
+    document.getElementById("printReport").innerHTML = html; window.print();
+  });
+  document.getElementById("btnContadorCsv").addEventListener("click", function(){
+    var ws = activeWs();
+    var txs = contadorTransactions(contadorAno);
+    var lines = [["Data","Tipo","Descricao","Categoria","CPF_CNPJ","Valor"].join(";")];
+    txs.forEach(function(t){
+      var valorStr = t.valor.toFixed(2).replace(".",",");
+      var campos = [t.data, t.tipo==="entrada"?"Entrada":"Saida", t.descricao, t.categoria, t.doc||"", valorStr];
+      lines.push(campos.map(function(v){
+        var s = String(v==null?"":v);
+        if(s.indexOf(";")>-1 || s.indexOf('"')>-1 || s.indexOf("\n")>-1) s = '"'+s.replace(/"/g,'""')+'"';
+        return s;
+      }).join(";"));
+    });
+    var csv = String.fromCharCode(0xFEFF)+lines.join(String.fromCharCode(13,10));
+    var blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "extrato-contador-"+(ws.nome||"negocio").toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+contadorAno+".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
 
   /* ---------------- GERADOR DE MENSAGEM DE PROSPECÇÃO ---------------- */
   var NICHO_HOOKS = {
