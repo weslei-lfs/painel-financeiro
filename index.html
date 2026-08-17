@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Vértice — Network Space</title>
+<title>Alpha — Network Space</title>
 <meta name="description" content="Terminal de negócios: CRM, domínios, financeiro e configurações numa única tela.">
 <link rel="icon" type="image/png" href="logo-mark-light.png" id="faviconLink">
 </head>
 <body>
-<h2 class="sr-only">Vértice — terminal de negócios numa única tela: CRM em pipeline, radar de oportunidades, controle de domínios e vencimentos, financeiro e configurações</h2>
+<h2 class="sr-only">Alpha — terminal de negócios numa única tela: CRM em pipeline, radar de oportunidades, controle de domínios e vencimentos, financeiro e configurações</h2>
 
 <style>
   :root{
@@ -564,6 +564,10 @@
               </div>
               <div class="field-hint" style="margin-top:6px;">Fica salva neste navegador, uma imagem por tema. Ideal: foto grande, no formato paisagem.</div>
             </div>
+            <div class="theme-bg-section">
+              <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Opacidade dos componentes</div>
+              <div class="accent-slider"><input type="range" id="glassOpacitySlider" min="0" max="100" value="15" style="flex:1;"><span id="glassOpacityLabel" class="field-hint" style="margin:0;white-space:nowrap;">15%</span></div>
+            </div>
           </div>
           <div>
             <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Cor de destaque do negócio</div>
@@ -857,12 +861,13 @@
       var v2raw = localStorage.getItem("painel-weslei-v2");
       if(v2raw){ var v2 = JSON.parse(v2raw); if(v2 && Array.isArray(v2.workspaces) && v2.workspaces.length) return migrateWorkspaces(v2); }
       var ws = newWorkspace("Sites sob Demanda");
-      return { activeId: ws.id, workspaces: [ws], themeId:"wes-tech", empresa:{dominio:"",vencimentoDominio:"",emailProfissional:""} };
-    }catch(e){ var w = newWorkspace("Sites sob Demanda"); return { activeId: w.id, workspaces: [w], themeId:"wes-tech", empresa:{dominio:"",vencimentoDominio:"",emailProfissional:""} }; }
+      return { activeId: ws.id, workspaces: [ws], themeId:"wes-tech", themeBgImages:{}, glassOpacity:.15, empresa:{dominio:"",vencimentoDominio:"",emailProfissional:""} };
+    }catch(e){ var w = newWorkspace("Sites sob Demanda"); return { activeId: w.id, workspaces: [w], themeId:"wes-tech", themeBgImages:{}, glassOpacity:.15, empresa:{dominio:"",vencimentoDominio:"",emailProfissional:""} }; }
   }
   function migrateWorkspaces(parsed){
     parsed.themeId = parsed.themeId || "wes-tech";
     parsed.themeBgImages = parsed.themeBgImages && typeof parsed.themeBgImages === "object" ? parsed.themeBgImages : {};
+    parsed.glassOpacity = typeof parsed.glassOpacity === "number" ? parsed.glassOpacity : .15;
     if(!parsed.empresa || typeof parsed.empresa !== "object") parsed.empresa = { dominio:"", vencimentoDominio:"", emailProfissional:"" };
     parsed.workspaces.forEach(function(ws){
       ws.activityLog = ws.activityLog || [];
@@ -941,13 +946,15 @@
     var r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16);
     return "rgba("+r+","+g+","+b+","+alpha+")";
   }
+  function glassOp(){ return Math.max(0, Math.min(1, state.glassOpacity!=null ? state.glassOpacity : .15)); }
   function applyGlobalTheme(){
     var t = THEMES[state.themeId] || THEMES["wes-tech"];
+    var op = glassOp();
     root.style.setProperty("--bg", t.bg);
-    root.style.setProperty("--bg-1", toRgba(t.bg1, .1));
-    root.style.setProperty("--surface", toRgba(t.surface, .12));
-    root.style.setProperty("--surface-2", toRgba(t.surface2, .16));
-    root.style.setProperty("--surface-3", toRgba(t.surface3, .22));
+    root.style.setProperty("--bg-1", toRgba(t.bg1, op));
+    root.style.setProperty("--surface", toRgba(t.surface, op));
+    root.style.setProperty("--surface-2", toRgba(t.surface2, op));
+    root.style.setProperty("--surface-3", toRgba(t.surface3, op));
     root.style.setProperty("--border", t.modo==="light" ? "rgba(20,20,30,.10)" : "rgba(255,255,255,.14)");
     root.style.setProperty("--border-strong", t.modo==="light" ? "rgba(20,20,30,.22)" : "rgba(255,255,255,.30)");
     root.style.setProperty("--text", t.text);
@@ -977,8 +984,10 @@
     var bgImg = (state.themeBgImages && state.themeBgImages[state.themeId]) || t.bgImage;
     if(bgImg){
       root.style.setProperty("--glass-bg-image", "url('"+bgImg+"')");
-      root.style.setProperty("--glass-overlay-top", t.modo==="light" ? "rgba(255,255,255,.08)" : "rgba(4,7,14,.1)");
-      root.style.setProperty("--glass-overlay-bottom", t.modo==="light" ? "rgba(255,255,255,.2)" : "rgba(4,7,14,.24)");
+      var ovTop = t.modo==="light" ? toRgba("#ffffff", op*.7) : toRgba("#04070e", op*.7);
+      var ovBottom = t.modo==="light" ? toRgba("#ffffff", op) : toRgba("#04070e", op);
+      root.style.setProperty("--glass-overlay-top", ovTop);
+      root.style.setProperty("--glass-overlay-bottom", ovBottom);
       document.body.classList.add("has-glass-bg-image");
     } else {
       document.body.classList.remove("has-glass-bg-image");
@@ -1113,7 +1122,7 @@
     }).filter(Boolean);
     var normal = (ws.activityLog||[]).slice(0,8).map(function(a){ return { texto: a.texto, cls:"" }; });
     var items = empresaAlerts.concat(alerts).concat(parcelaAlerts).concat(assinaturaAlerts).concat(socialAlerts).concat(stuckAlerts).concat(reuniaoAlerts).concat(normal);
-    if(!items.length) items = [{texto:"Bem-vindo ao Vértice",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
+    if(!items.length) items = [{texto:"Bem-vindo ao Alpha",cls:""},{texto:"Nenhuma atividade registrada ainda neste negócio",cls:""}];
     var html = items.map(function(it){ return '<span class="'+it.cls+'">'+escapeHtml(it.texto)+'</span>'; }).join("");
     document.getElementById("tickerTrack").innerHTML = html + html;
   }
@@ -1865,7 +1874,25 @@
         '<span class="sw-name">'+t.nome+'</span></button>';
     }).join("");
     renderThemeBgUpload();
+    renderGlassOpacityUi();
   }
+  function glassOpacityLabelText(pct){
+    if(pct<=5) return pct+"% · transparente";
+    if(pct>=95) return pct+"% · sólido";
+    return pct+"%";
+  }
+  function renderGlassOpacityUi(){
+    var pct = Math.round(glassOp()*100);
+    document.getElementById("glassOpacitySlider").value = pct;
+    document.getElementById("glassOpacityLabel").textContent = glassOpacityLabelText(pct);
+  }
+  document.getElementById("glassOpacitySlider").addEventListener("input", function(e){
+    var pct = parseInt(e.target.value,10);
+    state.glassOpacity = pct/100;
+    document.getElementById("glassOpacityLabel").textContent = glassOpacityLabelText(pct);
+    saveState();
+    applyGlobalTheme();
+  });
   function renderThemeBgUpload(){
     var t = THEMES[state.themeId] || THEMES["wes-tech"];
     document.getElementById("themeBgActiveName").textContent = t.nome;
@@ -2097,7 +2124,7 @@
       linhas.push("O cliente possui assinatura ativa de gestão de redes sociais e tráfego pago no valor de " + fmtBRL(assSocial.valorMensal) + "/mês, com cobrança todo dia " + (assSocial.diaCobranca||5) + ". Enquanto a assinatura estiver ativa e em dia, a Network Space cuida do Instagram do cliente, roda campanhas de tráfego pago e produz o conteúdo combinado (roteiro e gravação).");
     }
     linhas.push("");
-    linhas.push("Documento gerado automaticamente pelo painel Vértice — Network Space.");
+    linhas.push("Documento gerado automaticamente pelo painel Alpha — Network Space.");
     return linhas.join("\n");
   }
   function openTermoModal(lead){
