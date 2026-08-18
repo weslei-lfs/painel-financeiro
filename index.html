@@ -710,6 +710,11 @@
   <div class="msggen-body">
     <div class="msggen-form">
       <div class="field">
+        <label>Lead cadastrado (opcional)</label>
+        <select id="mg_lead_select"><option value="">— Escrever manualmente —</option></select>
+      </div>
+      <div class="field-hint" id="mg_lead_whatsapp_hint" style="display:none;margin-bottom:10px;"></div>
+      <div class="field">
         <label>Nicho do negócio</label>
         <select id="mg_nicho">
           <option value="dentista">Dentista</option>
@@ -1852,6 +1857,67 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     autoescola: "Quem vai tirar ou renovar a CNH pesquisa autoescola no Google antes de se matricular — um site com preços, turmas e diferenciais ajuda a decidir por vocês em vez do concorrente.",
     outro: "Notamos que o negócio ainda não tem um site — e isso pode estar fazendo vocês perderem clientes que pesquisam no Google antes de decidir onde comprar/contratar."
   };
+  var MSG_NICHO_KEYWORDS = {
+    dentista: ["dentist","odont"],
+    clinica_medica: ["clinicamedica","medic","clinico"],
+    fisioterapeuta: ["fisioterap"],
+    psicologo: ["psicolog","psicoterap"],
+    advogado: ["advoga","juridic"],
+    contador: ["contad","contabil"],
+    engenheiro_arquiteto: ["engenh","arquitet"],
+    imobiliaria: ["imobiliar"],
+    corretor: ["corretor"],
+    loja_roupa: ["roupa","moda","vestuari","boutique","confeccao"],
+    salao_beleza: ["salao","beleza","cabel","estetic"],
+    barbearia: ["barbe"],
+    academia: ["academia","fitness","crossfit","musculacao"],
+    petshop: ["pet","veterin"],
+    farmacia: ["farmac"],
+    optica: ["otic","optic"],
+    restaurante: ["restaurante","lanchonete","pizzaria","hamburgueria","comida"],
+    oficina: ["oficina","mecanic","autopeca"],
+    material_construcao: ["construcao","materialdeconstrucao"],
+    autoescola: ["autoescola","cfc"]
+  };
+  function guessNichoKey(nichoText){
+    var key = normalizeHeaderKey(nichoText);
+    if(!key) return "";
+    var fields = Object.keys(MSG_NICHO_KEYWORDS);
+    for(var i=0;i<fields.length;i++){
+      var kws = MSG_NICHO_KEYWORDS[fields[i]];
+      for(var j=0;j<kws.length;j++){ if(key.indexOf(kws[j])>-1) return fields[i]; }
+    }
+    return "";
+  }
+  function populateMsgGenLeadSelect(){
+    var sel = document.getElementById("mg_lead_select");
+    var atual = sel.value;
+    var leads = activeWs().leads.filter(function(l){ return l.stage==="novo"; });
+    sel.innerHTML = '<option value="">— Escrever manualmente —</option>'+
+      leads.map(function(l){ return '<option value="'+l.id+'">'+escapeHtml(l.nome)+(l.cidade?" — "+escapeHtml(l.cidade):"")+'</option>'; }).join("");
+    if(leads.some(function(l){return l.id===atual;})) sel.value = atual;
+  }
+  document.getElementById("mg_lead_select").addEventListener("change", function(){
+    var leadId = this.value;
+    var hint = document.getElementById("mg_lead_whatsapp_hint");
+    if(!leadId){ hint.style.display = "none"; return; }
+    var lead = activeWs().leads.find(function(l){ return l.id===leadId; });
+    if(!lead) return;
+    document.getElementById("mg_cidade").value = lead.cidade||"";
+    document.getElementById("mg_whatsapp").value = lead.whatsapp||"";
+    var guessed = guessNichoKey(lead.nicho||"");
+    if(guessed){
+      document.getElementById("mg_nicho").value = guessed;
+      document.getElementById("mg_nicho_outro_wrap").style.display = "none";
+    } else {
+      document.getElementById("mg_nicho").value = "outro";
+      document.getElementById("mg_nicho_outro_wrap").style.display = "flex";
+      document.getElementById("mg_nicho_outro").value = lead.nicho||"";
+    }
+    hint.style.display = "block";
+    hint.innerHTML = lead.whatsapp ? ("📱 WhatsApp deste lead: <strong>"+escapeHtml(lead.whatsapp)+"</strong> — confere antes de enviar.") : "⚠️ Esse lead não tem WhatsApp cadastrado ainda.";
+    atualizarWaMsgLink();
+  });
   function fmtPrecoMsg(n){
     n = Number(n)||0;
     var inteiro = n % 1 === 0;
@@ -1866,9 +1932,15 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     var hook = NICHO_HOOKS[nichoSel] || NICHO_HOOKS.outro;
     var localeTxt = cidade ? "aqui de " + cidade : "aqui da região";
     var temFaixa = min>0 && max>0;
+    var leadId = document.getElementById("mg_lead_select").value;
+    var leadNome = "";
+    if(leadId){
+      var leadObj = activeWs().leads.find(function(l){ return l.id===leadId; });
+      if(leadObj) leadNome = leadObj.nome;
+    }
 
     var linhas = [];
-    linhas.push("Oi, bom dia! 👋");
+    linhas.push(leadNome ? ("Oi, "+leadNome+"! Tudo bem? 👋") : "Oi, bom dia! 👋");
     linhas.push("");
     linhas.push("Somos a Network Space, agência de criação de sites " + localeTxt + ". Estamos selecionando algumas empresas da região pra uma demonstração gratuita de site, e o seu negócio foi um dos escolhidos. " + hook);
     linhas.push("");
@@ -1924,7 +1996,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       copiaManual();
     }
   });
-  function openMsgGenOverlay(){ document.getElementById("msgGenOverlay").style.display = "flex"; }
+  function openMsgGenOverlay(){ populateMsgGenLeadSelect(); document.getElementById("msgGenOverlay").style.display = "flex"; }
   function closeMsgGenOverlay(){ document.getElementById("msgGenOverlay").style.display = "none"; }
   document.getElementById("btnOpenMsgGen").addEventListener("click", openMsgGenOverlay);
   document.getElementById("btnCloseMsgGen").addEventListener("click", closeMsgGenOverlay);
