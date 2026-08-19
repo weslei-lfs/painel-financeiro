@@ -125,6 +125,8 @@
 
   .panel{ background: var(--surface); border:1px solid var(--border); border-radius:9px; clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%); display:flex; flex-direction:column; min-height:0; position:relative; box-shadow: var(--panel-shadow); }
   .panel::before{ content:""; position:absolute; top:0; right:0; width:0; height:0; border-style:solid; border-width:0 var(--cut) var(--cut) 0; border-color: transparent var(--accent) transparent transparent; opacity:.9; }
+  #primaryAgencia, #primaryDropship{ flex-direction:column; flex:1 1 auto; min-height:0; }
+  #primaryDropship{ display:none; }
   .panel-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; border-bottom:1px solid var(--border); flex:0 0 auto; }
   .panel-head h2{ font-size:10px; text-transform:uppercase; letter-spacing:0.7px; color:var(--text-muted); font-weight:800; margin:0; }
   .panel-body{ flex:1 1 auto; min-height:0; overflow:auto; }
@@ -885,7 +887,27 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
   }
   var PARCELAMENTO_LABEL = { ok:"Quitado", late:"Atrasado", soon:"Parcelando", none:"À vista" };
   function valorAReceber(ws){
-    return ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+pagamentoInfo(l).aReceber; },0);
+    return ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+pagamentoInfo(l).aReceber+servicosExtrasTotal(l,false); },0);
+  }
+
+  // ---- Serviços avulsos (cobranças extras fora do pacote principal) ----
+  var SERVICOS_EXTRAS_PRESET = [
+    { label:"Instalação de Conversão do Google Ads", valor:150 },
+    { label:"Criação de logo", valor:199.90 },
+    { label:"Landing page", valor:299.90 }
+  ];
+  function servicosExtrasTotal(l, apenasPago){
+    return (l.servicosExtras||[]).filter(function(ex){ return apenasPago===undefined || !!ex.pago===apenasPago; }).reduce(function(s,ex){ return s+Number(ex.valor||0); },0);
+  }
+  function servicosExtrasMonthTotal(ws, apenasPago){
+    var total = 0;
+    ws.leads.forEach(function(l){
+      (l.servicosExtras||[]).forEach(function(ex){
+        if(apenasPago!==undefined && !!ex.pago!==apenasPago) return;
+        if(ex.data && inThisMonth(ex.data)) total += Number(ex.valor||0);
+      });
+    });
+    return total;
   }
 
   // ---- Assinatura de manutenção (receita recorrente) ----
@@ -1127,8 +1149,8 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     document.getElementById("viewCrumb").textContent = isDropship
       ? "Produtos, vendas, financeiro e configurações — tudo em uma tela"
       : "CRM, domínios, financeiro e configurações — tudo em uma tela";
-    document.getElementById("primaryAgencia").style.display = isDropship ? "none":"block";
-    document.getElementById("primaryDropship").style.display = isDropship ? "block":"none";
+    document.getElementById("primaryAgencia").style.display = isDropship ? "none":"flex";
+    document.getElementById("primaryDropship").style.display = isDropship ? "flex":"none";
     document.getElementById("secondaryAgencia").style.display = isDropship ? "none":"block";
     document.getElementById("secondaryDropship").style.display = isDropship ? "block":"none";
     document.getElementById("secondaryPanelTitle").textContent = isDropship ? "Vendas" : "Domínios";
@@ -1219,11 +1241,11 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       return { receita:receitaD, gastos:gastos+cogsD, lucro:receitaD-cogsD-gastos, fechados:vendasMonth.length, conversao:ticketMedio, isTicketMedio:true };
     }
     var fechadosMonth = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
-    var receita = fechadosMonth.reduce(function(s,l){ return s+Number(l.valor||0); },0);
+    var receita = fechadosMonth.reduce(function(s,l){ return s+Number(l.valor||0); },0) + servicosExtrasMonthTotal(ws, true);
     var totalLeads = ws.leads.length;
     var totalFechados = ws.leads.filter(function(l){ return l.stage==="fechado"; }).length;
     var conversao = totalLeads ? (totalFechados/totalLeads*100) : 0;
-    var estimativa = ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+Number(l.valor||0); },0);
+    var estimativa = ws.leads.filter(function(l){ return l.stage!=="perdido"; }).reduce(function(s,l){ return s+Number(l.valor||0)+servicosExtrasTotal(l); },0);
     return { receita:receita, gastos:gastos, lucro:receita-gastos, fechados:fechadosMonth.length, conversao:conversao, isTicketMedio:false, estimativa:estimativa };
   }
 
@@ -1400,6 +1422,9 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
             if(c.pago && c.dataPagamento && entradasByDay.hasOwnProperty(c.dataPagamento)) entradasByDay[c.dataPagamento]+=Number(l.assinaturaSocial.valorMensal||0);
           });
         }
+        (l.servicosExtras||[]).forEach(function(ex){
+          if(ex.pago && ex.data && entradasByDay.hasOwnProperty(ex.data)) entradasByDay[ex.data]+=Number(ex.valor||0);
+        });
       });
     }
     ws.expenses.forEach(function(e){ if(e.data && saidasByDay.hasOwnProperty(e.data)) saidasByDay[e.data]+=Number(e.valor||0); });
@@ -1618,6 +1643,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
         }
         if(l.assinatura) (l.assinatura.ciclos||[]).forEach(function(c){ if(c.pago) add(c.dataPagamento); });
         if(l.assinaturaSocial) (l.assinaturaSocial.ciclos||[]).forEach(function(c){ if(c.pago) add(c.dataPagamento); });
+        (l.servicosExtras||[]).forEach(function(ex){ if(ex.pago) add(ex.data); });
       });
     }
     ws.expenses.forEach(function(e){ add(e.data); });
@@ -1655,6 +1681,9 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
         });
         if(l.assinaturaSocial) (l.assinaturaSocial.ciclos||[]).forEach(function(c){
           if(c.pago && inYear(c.dataPagamento)) out.push({ data:c.dataPagamento, tipo:"entrada", descricao:"Assinatura redes sociais — "+l.nome, categoria:"Assinatura", doc:doc, valor:Number(l.assinaturaSocial.valorMensal||0) });
+        });
+        (l.servicosExtras||[]).forEach(function(ex){
+          if(ex.pago && inYear(ex.data)) out.push({ data:ex.data, tipo:"entrada", descricao:(ex.descricao||"Serviço avulso")+" — "+l.nome, categoria:"Serviço avulso", doc:doc, valor:Number(ex.valor||0) });
         });
       });
     }
@@ -2366,6 +2395,19 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       '<div class="lv-item"><label>Parcelamento</label><div class="val">'+pag.pagas+' de '+pag.total+' parcelas pagas'+(pag.aReceber>0?' · falta receber '+fmtBRL(pag.aReceber):'')+'</div></div>'+
       '<div class="parcelas-list">'+rows+'</div></div>';
   }
+  function extrasViewHtml(lead){
+    var extras = lead.servicosExtras || [];
+    if(!extras.length) return '';
+    var total = servicosExtrasTotal(lead);
+    var totalPago = servicosExtrasTotal(lead, true);
+    var rows = extras.slice().sort(function(a,b){ return (b.data||"").localeCompare(a.data||""); }).map(function(ex){
+      return '<div class="parcela-row"><span class="pnum" style="flex:1;text-align:left;">'+escapeHtml(ex.descricao||"Serviço avulso")+'</span><span class="pval tabular">'+fmtBRL(ex.valor)+'</span><span class="pvenc tabular">'+fmtDateShort(ex.data)+'</span>'+
+        '<button class="chip '+(ex.pago?"ok":"soon")+'" data-toggle-extra="'+ex.id+'">'+(ex.pago?"Pago":"Marcar pago")+'</button></div>';
+    }).join("");
+    return '<div class="lv-domain-box" style="flex-direction:column;align-items:stretch;">'+
+      '<div class="lv-item"><label>Serviços avulsos</label><div class="val">'+fmtBRL(totalPago)+' recebido de '+fmtBRL(total)+' total'+'</div></div>'+
+      '<div class="parcelas-list">'+rows+'</div></div>';
+  }
   function assinaturaViewHtml(a, label, key){
     if(!a || !a.ativa) return '';
     var info = assinaturaInfo(a);
@@ -2403,6 +2445,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       '</div>'+
       (dom.contratado ? '<div class="lv-domain-box"><div class="lv-item"><label>Domínio</label><div class="val"><span class="chip '+domainStatus(lead)+'">'+DOMAIN_STATUS_LABEL[domainStatus(lead)]+'</span></div></div><div class="lv-item"><label>Vencimento</label><div class="val">'+fmtDateShort(dom.vencimento)+'</div></div><div class="lv-item"><label>Pago por</label><div class="val">'+escapeHtml(dom.pagoPor||"—")+'</div></div></div>' : '')+
       parcelasViewHtml(lead)+
+      extrasViewHtml(lead)+
       assinaturaViewHtml(lead.assinatura, "Assinatura de manutenção", "assinatura")+
       assinaturaViewHtml(lead.assinaturaSocial, "Assinatura de redes sociais / tráfego", "assinaturaSocial")+
       '<div class="timeline-section" style="border-top:none;margin-top:0;padding-top:0;"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
@@ -2426,6 +2469,22 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
         pushLog(ws, (pc.pago?"Parcela "+pc.numero+" paga — ":"Parcela "+pc.numero+" reaberta — ")+liveLead.nome);
         saveState();
         lead.pagamento = liveLead.pagamento;
+        openLeadViewModal(lead);
+        renderSideStats(computeKpis()); renderCrm(); renderTicker();
+      });
+    });
+    modalLayer.querySelectorAll("[data-toggle-extra]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var ws = activeWs();
+        var liveLead = ws.leads.find(function(x){return x.id===lead.id;});
+        if(!liveLead) return;
+        var ex = (liveLead.servicosExtras||[]).find(function(x){return x.id===btn.getAttribute("data-toggle-extra");});
+        if(!ex) return;
+        ex.pago = !ex.pago;
+        ex.data = ex.pago ? (ex.data || todayISO()) : ex.data;
+        pushLog(ws, (ex.pago?"Serviço avulso pago — ":"Serviço avulso reaberto — ")+(ex.descricao||"")+" — "+liveLead.nome);
+        saveState();
+        lead.servicosExtras = liveLead.servicosExtras;
         openLeadViewModal(lead);
         renderSideStats(computeKpis()); renderCrm(); renderTicker();
       });
@@ -2604,13 +2663,26 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       '</div>';
     }).join("");
   }
+  function extrasEditRowsHtml(extras){
+    if(!extras.length) return '<div class="timeline-empty">Nenhum serviço avulso ainda.</div>';
+    return extras.map(function(ex){
+      return '<div class="field-row" style="align-items:flex-end;" data-extra-row="'+ex.id+'">'+
+        '<div class="field" style="flex:2 1 160px;"><label>Descrição</label><input type="text" class="ex-desc" list="extrasPresetList" value="'+escapeHtml(ex.descricao||"")+'" placeholder="Ex: Instalação de Conversão do Google Ads"></div>'+
+        '<div class="field"><label>Valor (R$)</label><input type="number" step="0.01" class="ex-valor" value="'+(ex.valor||0)+'"></div>'+
+        '<div class="field"><label>Data</label><input type="date" class="ex-data" value="'+(ex.data||todayISO())+'"></div>'+
+        '<div class="field" style="flex:0 0 auto;"><label style="display:flex;align-items:center;gap:5px;font-weight:600;white-space:nowrap;"><input type="checkbox" class="ex-pago"'+(ex.pago?" checked":"")+'> Pago</label></div>'+
+        '<div class="field" style="flex:0 0 auto;"><button type="button" class="danger-link" data-remove-extra="'+ex.id+'">Remover</button></div>'+
+      '</div>';
+    }).join("");
+  }
   function openLeadModal(lead){
     var editing = !!lead;
-    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", endereco:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", servico:"site", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:assinaturaVazia(79), assinaturaSocial:assinaturaVazia(0), cadastro:cadastroVazio() };
+    lead = lead || { id:uid(), nome:"", nicho:"", cidade:"", endereco:"", site:"", whatsapp:"", valor:"", stage:"novo", temperatura:"morno", origem:"WhatsApp", servico:"site", data:todayISO(), atividades:[], dominio:{contratado:false,vencimento:"",pagoPor:"Eu"}, pagamento:{parcelado:false,parcelas:[]}, assinatura:assinaturaVazia(79), assinaturaSocial:assinaturaVazia(0), servicosExtras:[], cadastro:cadastroVazio() };
     var dom = lead.dominio || {contratado:false,vencimento:"",pagoPor:"Eu"};
     var pagamento = lead.pagamento || {parcelado:false,parcelas:[]};
     var assinatura = lead.assinatura || assinaturaVazia(79);
     var assinaturaSocial = lead.assinaturaSocial || assinaturaVazia(0);
+    var extras = (lead.servicosExtras || []).slice();
     var waHref = waLink(lead.whatsapp);
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal wide">'+
@@ -2650,6 +2722,12 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
         '<div class="field"><label>Assinante desde</label><input id="l_social_inicio" type="date" value="'+(assinaturaSocial.dataInicio||todayISO())+'"></div>'+
         '<div class="field-hint">Cobrança separada da manutenção do site — gestão de Instagram, tráfego pago, roteiro e gravação de vídeo.</div>'+
       '</div>'+
+      '<div class="field" style="margin-top:4px;"><label>Serviços avulsos</label>'+
+        '<datalist id="extrasPresetList">'+SERVICOS_EXTRAS_PRESET.map(function(p){ return '<option value="'+escapeHtml(p.label)+'">'; }).join("")+'</datalist>'+
+        '<div id="extrasRowsList">'+extrasEditRowsHtml(extras)+'</div>'+
+        '<button type="button" class="btn sm" id="l_add_extra" style="margin-top:8px;">+ Adicionar serviço avulso</button>'+
+        '<div class="field-hint">Ex: logo, landing page, instalação de conversão do Google Ads — cobranças extras fora do pacote principal, contadas no financeiro quando marcadas como pagas.</div>'+
+      '</div>'+
       '<div class="modal-actions">'+(editing?'<button class="danger-link" id="l_delete">Excluir</button>':'')+'<button class="btn" id="l_cancel">Cancelar</button><button class="btn primary" id="l_save">Salvar</button></div>'+
       (editing ? '<div class="timeline-section"><label style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;">Linha do tempo</label>'+
         '<div class="timeline-add" style="margin-top:8px;"><select id="t_tipo">'+ACT_TYPES.map(function(t){return '<option>'+t+'</option>';}).join("")+'</select><input id="t_texto" placeholder="O que aconteceu?"><button class="btn sm" id="t_add">Registrar</button></div>'+
@@ -2681,6 +2759,25 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       }
       pagamento.parcelas = novas;
       document.getElementById("parcelasRowsList").innerHTML = parcelasEditRowsHtml(novas);
+    });
+    document.getElementById("l_add_extra").addEventListener("click", function(){
+      extras.push({ id:uid(), descricao:"", valor:0, data:todayISO(), pago:false });
+      document.getElementById("extrasRowsList").innerHTML = extrasEditRowsHtml(extras);
+    });
+    document.getElementById("extrasRowsList").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-remove-extra]");
+      if(!btn) return;
+      var id = btn.getAttribute("data-remove-extra");
+      extras = extras.filter(function(ex){ return ex.id!==id; });
+      document.getElementById("extrasRowsList").innerHTML = extrasEditRowsHtml(extras);
+    });
+    document.getElementById("extrasRowsList").addEventListener("input", function(e){
+      if(!e.target.classList.contains("ex-desc")) return;
+      var preset = SERVICOS_EXTRAS_PRESET.find(function(p){ return p.label===e.target.value; });
+      if(!preset) return;
+      var row = e.target.closest("[data-extra-row]");
+      var valorInput = row ? row.querySelector(".ex-valor") : null;
+      if(valorInput && (!valorInput.value || Number(valorInput.value)===0)) valorInput.value = preset.valor;
     });
     document.querySelectorAll('#tempRadioGroup input[name="l_temp"]').forEach(function(r){
       r.addEventListener("change", function(){ document.querySelectorAll('#tempRadioGroup label').forEach(function(lb){ lb.classList.toggle("checked", lb.getAttribute("data-temp-opt")===r.value); }); });
@@ -2734,6 +2831,23 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       }
       var assinaturaOn = document.getElementById("l_assinatura_on").checked;
       var socialOn = document.getElementById("l_social_on").checked;
+      var servicosExtrasOut = [];
+      modalLayer.querySelectorAll("#extrasRowsList [data-extra-row]").forEach(function(row){
+        var descEl = row.querySelector(".ex-desc");
+        var valorEl = row.querySelector(".ex-valor");
+        var dataEl = row.querySelector(".ex-data");
+        var pagoEl = row.querySelector(".ex-pago");
+        var descricao = descEl ? descEl.value.trim() : "";
+        var valor = valorEl ? (parseFloat(valorEl.value)||0) : 0;
+        if(!descricao && !valor) return;
+        servicosExtrasOut.push({
+          id: row.getAttribute("data-extra-row") || uid(),
+          descricao: descricao,
+          valor: valor,
+          data: dataEl && dataEl.value ? dataEl.value : todayISO(),
+          pago: pagoEl ? pagoEl.checked : false
+        });
+      });
       var updated = {
         id: lead.id, nome:nome,
         nicho: document.getElementById("l_nicho").value.trim(),
@@ -2766,6 +2880,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
           dataCancelamento: (!socialOn && assinaturaSocial.ativa) ? todayISO() : (socialOn ? "" : (assinaturaSocial.dataCancelamento||"")),
           ciclos: assinaturaSocial.ciclos || []
         },
+        servicosExtras: servicosExtrasOut,
         cadastro: lead.cadastro || cadastroVazio(),
         atividades: lead.atividades || []
       };
@@ -3413,7 +3528,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       corpoHtml = monthVendas.length ? monthVendas.map(function(v){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(v.produtoNome)+'</td><td style="padding:6px 4px;">'+v.quantidade+'x</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(v.valorVenda)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhuma venda neste mês.</td></tr>';
     } else {
       var monthLeads = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
-      receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0);
+      receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0) + servicosExtrasMonthTotal(ws, true);
       corpoTitulo = "Leads fechados ("+monthLeads.length+")";
       corpoHtml = monthLeads.length ? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhum lead fechado neste mês.</td></tr>';
     }
