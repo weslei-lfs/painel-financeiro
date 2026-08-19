@@ -451,8 +451,7 @@
       <div class="side-mini-stat"><div class="l">Lucro líquido</div><div class="v tabular" id="sideLucro">R$ 0</div></div>
       <div class="side-mini-stat"><div class="l" id="sideStat3Label">Taxa de conversão</div><div class="v tabular" id="sideConversao">0%</div></div>
       <button class="pipeline-cta" id="btnOpenPipeline"><span>▦ Pipeline</span><span class="badge tabular" id="pipelineBadge">0</span></button>
-      <button class="pipeline-cta" id="btnOpenGfin"><span>📊 Gestão Financeira</span></button>
-      <button class="pipeline-cta" id="btnOpenContador"><span>🧾 Área do Contador</span></button>
+      <button class="pipeline-cta" id="btnOpenGfin"><span>📊 Financeiro & Contador</span></button>
       <button class="pipeline-cta" id="btnOpenMsgGen"><span>✉️ Gerador de Mensagem</span></button>
     </div>
 
@@ -549,14 +548,22 @@
       </div>
 
       <div class="panel z-finance">
-        <div class="panel-head"><h2>Financeiro</h2><button class="btn sm" id="btnManageCats">Categorias</button><button class="btn sm" id="btnNewExpense">+ Gasto</button></div>
+        <div class="panel-head"><h2>Financeiro</h2><button class="btn sm" id="btnManageCats">Categorias</button><button class="btn sm" id="btnNewReceita">+ Receita</button><button class="btn sm" id="btnNewExpense">+ Gasto</button></div>
         <div class="panel-body" style="display:flex;flex-direction:column;">
           <div style="display:flex;gap:10px;padding:8px 10px;flex:0 0 auto;">
             <div style="width:70px;height:70px;position:relative;flex:0 0 auto;"><canvas id="donutChart"></canvas><div class="empty-mini" id="donutEmpty" style="display:none;font-size:9px;">Sem gastos.</div></div>
             <div class="gauge-legend" id="donutLegend" style="display:flex;flex-direction:column;gap:3px;font-size:10px;justify-content:center;"></div>
+            <div class="temp-filter" id="expenseTipoFilter" title="Filtrar por tipo" style="margin-left:auto;align-self:center;">
+              <button data-tipo="all" class="active" style="width:auto;padding:0 8px;font-size:9.5px;font-weight:700;">Tudo</button>
+              <button data-tipo="diaadia" style="width:auto;padding:0 8px;font-size:9.5px;font-weight:700;">Dia a dia</button>
+              <button data-tipo="empresa" style="width:auto;padding:0 8px;font-size:9.5px;font-weight:700;">Empresa</button>
+            </div>
           </div>
           <table><thead><tr><th>Categoria</th><th class="num">Valor</th><th></th></tr></thead><tbody id="expenseRows"></tbody></table>
           <div class="empty-state" id="expenseEmpty" style="display:none"><div class="big">◇</div><p>Nenhum gasto registrado. Clique em "+ Gasto" pra lançar o primeiro e acompanhar seu lucro real.</p></div>
+          <div class="contador-subhead" style="margin-top:8px;">Receitas avulsas</div>
+          <table><thead><tr><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead><tbody id="receitaExtraRows"></tbody></table>
+          <div class="empty-state" id="receitaExtraEmpty" style="display:none;padding:14px 10px;"><p style="font-size:10.5px;">Nenhuma receita avulsa registrada. Use "+ Receita" pra lançar dinheiro que entra fora do fluxo normal de cliente (aporte próprio, investimento, etc).</p></div>
         </div>
       </div>
 
@@ -631,19 +638,26 @@
 
 <div id="gfinOverlay" class="pipeline-overlay" style="display:none">
   <div class="pipeline-overlay-head">
-    <h2>Gestão Financeira — <span id="gfinWsName"></span></h2>
+    <h2>Financeiro — <span id="gfinWsName"></span></h2>
     <div class="pipeline-overlay-actions">
+      <div class="year-filter" id="finModeToggle" title="Visão">
+        <button data-mode="periodo" class="active">Dia a dia</button>
+        <button data-mode="anual">Anual (Contador)</button>
+      </div>
       <div class="temp-filter" id="gfinPeriodFilter" title="Período">
         <button data-periodo="7">7 dias</button>
         <button data-periodo="30" class="active">30 dias</button>
         <button data-periodo="mes">Este mês</button>
         <button data-periodo="90">90 dias</button>
       </div>
+      <div class="year-filter" id="contadorYearFilter" title="Ano" style="display:none;"></div>
+      <button class="btn sm" id="btnContadorCsv" style="display:none;">⬇️ Baixar CSV</button>
       <button class="btn primary sm" id="btnGfinReport">📄 Gerar relatório</button>
+      <button class="btn primary sm" id="btnContadorReport" style="display:none;">📄 Gerar relatório</button>
       <button class="btn sm" id="btnCloseGfin">✕ Fechar (Esc)</button>
     </div>
   </div>
-  <div class="gfin-full-body">
+  <div class="gfin-full-body" id="finViewPeriodo">
     <div class="field-hint" style="max-width:640px;">Cálculo por caixa: entradas contam quando o dinheiro realmente entra (à vista na data do fechamento; parcelas e assinaturas na data em que são marcadas como pagas), não na data do contrato.</div>
     <div class="gfin-kpis">
       <div class="gfin-kpi in"><div class="l">Entradas no período</div><div class="v tabular" id="gfinEntradas">R$ 0</div></div>
@@ -664,20 +678,8 @@
       <div class="empty-state" id="gfinEmpty" style="display:none"><div class="big">📊</div><p>Nada lançado neste período ainda.</p></div>
     </div>
   </div>
-</div>
-
-<div id="contadorOverlay" class="pipeline-overlay" style="display:none">
-  <div class="pipeline-overlay-head">
-    <h2>Área do Contador — <span id="contadorWsName"></span></h2>
-    <div class="pipeline-overlay-actions">
-      <div class="year-filter" id="contadorYearFilter" title="Ano"></div>
-      <button class="btn primary sm" id="btnContadorReport">📄 Gerar relatório</button>
-      <button class="btn sm" id="btnContadorCsv">⬇️ Baixar CSV</button>
-      <button class="btn sm" id="btnCloseContador">✕ Fechar (Esc)</button>
-    </div>
-  </div>
-  <div class="gfin-full-body">
-    <div class="field-hint" style="max-width:680px;">Tudo pronto pra declaração: cálculo por caixa (dinheiro que realmente entrou/saiu, na data em que entrou/saiu), com CPF/CNPJ de quem pagou quando cadastrado no cliente. É só escolher o ano, conferir e mandar pro contador — nada pra ele garimpar.</div>
+  <div class="gfin-full-body" id="finViewAnual" style="display:none">
+    <div class="field-hint" style="max-width:680px;">Tudo pronto pra declaração: cálculo por caixa (dinheiro que realmente entrou/saiu, na data em que entrou/saiu), com CPF/CNPJ de quem pagou quando cadastrado no cliente. Dando acesso a essa aba pro contador, ele resolve tudo por aqui. É só escolher o ano, conferir e mandar — nada pra ele garimpar.</div>
     <div class="gfin-kpis">
       <div class="gfin-kpi in"><div class="l">Entradas no ano</div><div class="v tabular" id="contadorEntradas">R$ 0</div></div>
       <div class="gfin-kpi out"><div class="l">Saídas no ano</div><div class="v tabular" id="contadorSaidas">R$ 0</div></div>
@@ -805,8 +807,10 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
 (function(){
   "use strict";
   var STORAGE_KEY = "painel-weslei-v3";
-  var EXPENSE_CATS_AGENCIA = ["Tráfego pago (Ads)", "Ferramentas de IA", "Domínio / Hospedagem", "Equipamentos", "Combustível", "Outros"];
-  var CAT_COLORS_AGENCIA = { "Tráfego pago (Ads)": "#ff5470", "Ferramentas de IA": "#4d9eff", "Domínio / Hospedagem": "#ffb648", "Equipamentos": "#2fd480", "Combustível": "#e0c34e", "Outros": "#7a86a3" };
+  var EXPENSE_CATS_AGENCIA = ["Tráfego pago (Ads)", "Ferramentas de IA", "Domínio / Hospedagem", "Equipamentos", "CNPJ / Contabilidade", "Combustível", "Outros"];
+  var CAT_COLORS_AGENCIA = { "Tráfego pago (Ads)": "#ff5470", "Ferramentas de IA": "#4d9eff", "Domínio / Hospedagem": "#ffb648", "Equipamentos": "#2fd480", "CNPJ / Contabilidade": "#8a5cf0", "Combustível": "#e0c34e", "Outros": "#7a86a3" };
+  var EXPENSE_TIPOS = ["diaadia", "empresa"];
+  var EXPENSE_TIPO_LABEL = { diaadia: "Dia a dia", empresa: "Empresa" };
   var EXPENSE_CATS_DROPSHIP = ["Ads", "Fornecedor / Produto", "Plataforma / Taxas", "Frete", "Equipamentos", "Combustível", "Outros"];
   var CAT_COLORS_DROPSHIP = { "Ads": "#ff5470", "Fornecedor / Produto": "#ffb648", "Plataforma / Taxas": "#4d9eff", "Frete": "#8a5cf0", "Equipamentos": "#2fd480", "Combustível": "#e0c34e", "Outros": "#7a86a3" };
   var CAT_COLOR_FALLBACK_PALETTE = ["#ff5470","#4d9eff","#ffb648","#8a5cf0","#2fd480","#e0c34e","#ff8a3d","#4ecbe0"];
@@ -936,7 +940,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
   }
   function assinaturaVazia(valorPadrao){ return { ativa:false, valorMensal:valorPadrao||0, diaCobranca:5, dataInicio:"", dataCancelamento:"", ciclos:[] }; }
 
-  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 207, leads: [], expenses: [], produtos: [], vendas: [], reunioes: [], activityLog: [], categoriasExtra: [] }; }
+  function newWorkspace(nome, tipo){ return { id: uid(), nome: nome || "Novo negócio", tipo: tipo || "agencia", hue: 207, leads: [], expenses: [], receitasExtras: [], produtos: [], vendas: [], reunioes: [], activityLog: [], categoriasExtra: [] }; }
   function pushLog(ws, texto){
     ws.activityLog = ws.activityLog || [];
     ws.activityLog.unshift({ id: uid(), texto: texto, data: new Date().toISOString() });
@@ -963,6 +967,9 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       ws.tipo = ws.tipo || "agencia";
       ws.leads = ws.leads || [];
       ws.expenses = ws.expenses || [];
+      ws.expenses.forEach(function(e){ e.tipo = e.tipo==="empresa" ? "empresa" : "diaadia"; });
+      ws.receitasExtras = ws.receitasExtras || [];
+      ws.receitasExtras.forEach(function(r){ if(typeof r.categoria !== "string") r.categoria = "Aporte próprio"; });
       ws.produtos = ws.produtos || [];
       ws.vendas = ws.vendas || [];
       ws.reunioes = ws.reunioes || [];
@@ -1230,18 +1237,22 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
 
   /* ---------------- KPIs ---------------- */
   function inThisMonth(iso){ if(!iso) return false; var d=new Date(iso+"T00:00:00"), now=new Date(); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth(); }
+  function receitasExtrasMonthTotal(ws){
+    return (ws.receitasExtras||[]).filter(function(r){ return inThisMonth(r.data); }).reduce(function(s,r){ return s+Number(r.valor||0); },0);
+  }
   function computeKpis(){
     var ws = activeWs();
     var gastos = ws.expenses.filter(function(e){ return inThisMonth(e.data); }).reduce(function(s,e){ return s+Number(e.valor||0); },0);
+    var receitaExtra = receitasExtrasMonthTotal(ws);
     if(ws.tipo==="dropshipping"){
       var vendasMonth = ws.vendas.filter(function(v){ return inThisMonth(v.data); });
-      var receitaD = vendasMonth.reduce(function(s,v){ return s+Number(v.valorVenda||0); },0);
+      var receitaD = vendasMonth.reduce(function(s,v){ return s+Number(v.valorVenda||0); },0) + receitaExtra;
       var cogsD = vendasMonth.reduce(function(s,v){ return s+Number(v.custoTotal||0); },0);
       var ticketMedio = vendasMonth.length ? receitaD/vendasMonth.length : 0;
       return { receita:receitaD, gastos:gastos+cogsD, lucro:receitaD-cogsD-gastos, fechados:vendasMonth.length, conversao:ticketMedio, isTicketMedio:true };
     }
     var fechadosMonth = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
-    var receita = fechadosMonth.reduce(function(s,l){ return s+Number(l.valor||0); },0) + servicosExtrasMonthTotal(ws, true);
+    var receita = fechadosMonth.reduce(function(s,l){ return s+Number(l.valor||0); },0) + servicosExtrasMonthTotal(ws, true) + receitaExtra;
     var totalLeads = ws.leads.length;
     var totalFechados = ws.leads.filter(function(l){ return l.stage==="fechado"; }).length;
     var conversao = totalLeads ? (totalFechados/totalLeads*100) : 0;
@@ -1254,9 +1265,12 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
   function last6Months(){ var arr=[], now=new Date(); for(var i=5;i>=0;i--){ var d=new Date(now.getFullYear(), now.getMonth()-i, 1); arr.push({y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString("pt-BR",{month:"short"}).replace(".","")}); } return arr; }
   function monthlySeries(ws){
     var months = last6Months();
+    var receitaExtraData = months.map(function(mo){
+      return (ws.receitasExtras||[]).filter(function(r){ if(!r.data) return false; var d=new Date(r.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,r){return s+Number(r.valor||0);},0);
+    });
     var receitaData = ws.tipo==="dropshipping"
-      ? months.map(function(mo){ return ws.vendas.filter(function(v){ if(!v.data) return false; var d=new Date(v.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,v){return s+Number(v.valorVenda||0);},0); })
-      : months.map(function(mo){ return ws.leads.filter(function(l){ var dt=l.dataFechamento||l.data; if(l.stage!=="fechado"||!dt) return false; var d=new Date(dt+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,l){return s+Number(l.valor||0);},0); });
+      ? months.map(function(mo,i){ return ws.vendas.filter(function(v){ if(!v.data) return false; var d=new Date(v.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,v){return s+Number(v.valorVenda||0);},0) + receitaExtraData[i]; })
+      : months.map(function(mo,i){ return ws.leads.filter(function(l){ var dt=l.dataFechamento||l.data; if(l.stage!=="fechado"||!dt) return false; var d=new Date(dt+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,l){return s+Number(l.valor||0);},0) + receitaExtraData[i]; });
     var gastosData = months.map(function(mo){
       var expTotal = ws.expenses.filter(function(e){ if(!e.data) return false; var d=new Date(e.data+"T00:00:00"); return d.getFullYear()===mo.y&&d.getMonth()===mo.m; }).reduce(function(s,e){return s+Number(e.valor||0);},0);
       if(ws.tipo!=="dropshipping") return expTotal;
@@ -1427,6 +1441,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
         });
       });
     }
+    (ws.receitasExtras||[]).forEach(function(r){ if(r.data && entradasByDay.hasOwnProperty(r.data)) entradasByDay[r.data]+=Number(r.valor||0); });
     ws.expenses.forEach(function(e){ if(e.data && saidasByDay.hasOwnProperty(e.data)) saidasByDay[e.data]+=Number(e.valor||0); });
     var saldoAcum = 0;
     return days.map(function(d){
@@ -1617,13 +1632,28 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     document.querySelectorAll("#tempFilter button").forEach(function(x){ x.classList.toggle("active", x.getAttribute("data-temp")===crmTempFilter); });
     renderCrm();
   });
+  var finMode = "periodo";
   function openGfinOverlay(){
     document.getElementById("gfinOverlay").style.display = "flex";
-    renderGestaoFin();
+    if(finMode==="anual") renderContador(); else renderGestaoFin();
   }
   function closeGfinOverlay(){ document.getElementById("gfinOverlay").style.display = "none"; }
   document.getElementById("btnOpenGfin").addEventListener("click", openGfinOverlay);
   document.getElementById("btnCloseGfin").addEventListener("click", closeGfinOverlay);
+  document.getElementById("finModeToggle").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-mode]"); if(!b) return;
+    finMode = b.getAttribute("data-mode");
+    document.querySelectorAll("#finModeToggle button").forEach(function(x){ x.classList.toggle("active", x===b); });
+    var isAnual = finMode==="anual";
+    document.getElementById("finViewPeriodo").style.display = isAnual ? "none" : "flex";
+    document.getElementById("finViewAnual").style.display = isAnual ? "flex" : "none";
+    document.getElementById("gfinPeriodFilter").style.display = isAnual ? "none" : "flex";
+    document.getElementById("contadorYearFilter").style.display = isAnual ? "flex" : "none";
+    document.getElementById("btnGfinReport").style.display = isAnual ? "none" : "";
+    document.getElementById("btnContadorReport").style.display = isAnual ? "" : "none";
+    document.getElementById("btnContadorCsv").style.display = isAnual ? "" : "none";
+    if(isAnual) renderContador(); else renderGestaoFin();
+  });
 
   /* ---------------- ÁREA DO CONTADOR ---------------- */
   var contadorChart, contadorAno = null;
@@ -1647,6 +1677,7 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       });
     }
     ws.expenses.forEach(function(e){ add(e.data); });
+    (ws.receitasExtras||[]).forEach(function(r){ add(r.data); });
     var list = Object.keys(years).map(Number).sort(function(a,b){ return b-a; });
     var thisYear = new Date().getFullYear();
     if(list.indexOf(thisYear)===-1) list.unshift(thisYear);
@@ -1689,7 +1720,12 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     }
     ws.expenses.forEach(function(e){
       if(!inYear(e.data)) return;
-      out.push({ data:e.data, tipo:"saida", descricao:e.descricao||e.categoria||"Gasto", categoria:e.categoria||"Outros", doc:"", valor:Number(e.valor||0) });
+      var catTag = e.tipo==="empresa" ? " (Empresa)" : "";
+      out.push({ data:e.data, tipo:"saida", descricao:e.descricao||e.categoria||"Gasto", categoria:(e.categoria||"Outros")+catTag, doc:"", valor:Number(e.valor||0) });
+    });
+    (ws.receitasExtras||[]).forEach(function(r){
+      if(!inYear(r.data)) return;
+      out.push({ data:r.data, tipo:"entrada", descricao:r.descricao||"Receita avulsa", categoria:r.categoria||"Receita avulsa", doc:"", valor:Number(r.valor||0) });
     });
     out.sort(function(a,b){ return a.data<b.data?-1:a.data>b.data?1:0; });
     return out;
@@ -1703,7 +1739,6 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
   }
   function renderContador(){
     var ws = activeWs();
-    document.getElementById("contadorWsName").textContent = ws.nome;
     var years = contadorYears();
     if(!contadorAno || years.indexOf(contadorAno)===-1) contadorAno = contadorDefaultYear(years);
     document.getElementById("contadorYearFilter").innerHTML = years.map(function(y){
@@ -1789,13 +1824,6 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
         "<td class='num tabular' style='color:var(--danger)'>"+(t.tipo==="saida"?fmtBRL(t.valor):"—")+"</td></tr>";
     }).join("");
   }
-  function openContadorOverlay(){
-    document.getElementById("contadorOverlay").style.display = "flex";
-    renderContador();
-  }
-  function closeContadorOverlay(){ document.getElementById("contadorOverlay").style.display = "none"; }
-  document.getElementById("btnOpenContador").addEventListener("click", openContadorOverlay);
-  document.getElementById("btnCloseContador").addEventListener("click", closeContadorOverlay);
   document.getElementById("contadorYearFilter").addEventListener("click", function(e){
     var b = e.target.closest("button[data-ano]"); if(!b) return;
     contadorAno = parseInt(b.getAttribute("data-ano"),10);
@@ -2239,11 +2267,14 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
   }
 
   /* ---------------- FINANCEIRO ---------------- */
+  var expenseTipoFiltro = "all";
   function renderFinanceiro(){
     var ws = activeWs();
-    document.getElementById("expenseEmpty").style.display = ws.expenses.length ? "none":"flex";
-    document.getElementById("expenseRows").innerHTML = ws.expenses.slice().sort(function(a,b){return (b.data||"").localeCompare(a.data||"");}).map(function(e){
-      return '<tr><td class="name-cell" data-edit-exp="'+e.id+'"><div class="primary">'+escapeHtml(e.descricao||e.categoria)+'</div><div class="secondary">'+escapeHtml(e.categoria)+'</div></td>'+
+    var expensesVisiveis = ws.expenses.filter(function(e){ return expenseTipoFiltro==="all" || (e.tipo||"diaadia")===expenseTipoFiltro; });
+    document.getElementById("expenseEmpty").style.display = expensesVisiveis.length ? "none":"flex";
+    document.getElementById("expenseRows").innerHTML = expensesVisiveis.slice().sort(function(a,b){return (b.data||"").localeCompare(a.data||"");}).map(function(e){
+      var tipoTag = e.tipo==="empresa" ? ' · <span style="color:var(--accent);">Empresa</span>' : "";
+      return '<tr><td class="name-cell" data-edit-exp="'+e.id+'"><div class="primary">'+escapeHtml(e.descricao||e.categoria)+'</div><div class="secondary">'+escapeHtml(e.categoria)+tipoTag+'</div></td>'+
         '<td class="num tabular">'+fmtBRL(e.valor)+'</td><td><div class="row-actions"><button class="icon-btn" data-edit-exp="'+e.id+'">✎</button><button class="icon-btn" data-del-exp="'+e.id+'">✕</button></div></td></tr>';
     }).join("");
     document.getElementById("expenseRows").onclick = function(e){
@@ -2252,10 +2283,29 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       if(id){ if(confirm("Excluir este gasto?")){ ws.expenses = ws.expenses.filter(function(x){return x.id!==id;}); saveState(); renderAll(); } return; }
       if(editId){ var exp = ws.expenses.find(function(x){return x.id===editId;}); if(exp) openExpenseModal(exp); }
     };
+    var receitas = ws.receitasExtras || [];
+    document.getElementById("receitaExtraEmpty").style.display = receitas.length ? "none":"flex";
+    document.getElementById("receitaExtraRows").innerHTML = receitas.slice().sort(function(a,b){return (b.data||"").localeCompare(a.data||"");}).map(function(r){
+      return '<tr><td class="name-cell" data-edit-rec="'+r.id+'"><div class="primary">'+escapeHtml(r.descricao||r.categoria)+'</div><div class="secondary">'+escapeHtml(r.categoria)+' · '+fmtDateShort(r.data)+'</div></td>'+
+        '<td class="num tabular" style="color:var(--success);">'+fmtBRL(r.valor)+'</td><td><div class="row-actions"><button class="icon-btn" data-edit-rec="'+r.id+'">✎</button><button class="icon-btn" data-del-rec="'+r.id+'">✕</button></div></td></tr>';
+    }).join("");
+    document.getElementById("receitaExtraRows").onclick = function(e){
+      var id = e.target.getAttribute("data-del-rec");
+      var editId = e.target.closest("[data-edit-rec]") ? e.target.closest("[data-edit-rec]").getAttribute("data-edit-rec") : null;
+      if(id){ if(confirm("Excluir esta receita?")){ ws.receitasExtras = ws.receitasExtras.filter(function(x){return x.id!==id;}); saveState(); renderAll(); } return; }
+      if(editId){ var rec = ws.receitasExtras.find(function(x){return x.id===editId;}); if(rec) openReceitaModal(rec); }
+    };
     try{ renderDonut(); }catch(e){ console.error("donut falhou", e); }
   }
   document.getElementById("btnNewExpense").addEventListener("click", function(){ openExpenseModal(); });
+  document.getElementById("btnNewReceita").addEventListener("click", function(){ openReceitaModal(); });
   document.getElementById("btnManageCats").addEventListener("click", openCategoriaModal);
+  document.getElementById("expenseTipoFilter").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-tipo]"); if(!b) return;
+    expenseTipoFiltro = b.getAttribute("data-tipo");
+    document.querySelectorAll("#expenseTipoFilter button").forEach(function(x){ x.classList.toggle("active", x===b); });
+    renderFinanceiro();
+  });
 
   /* ---------------- CONFIG ---------------- */
   function renderConfig(){
@@ -3085,10 +3135,12 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     var editing = !!expExistente;
     var ws = activeWs();
     var cats = expenseCats();
-    var exp = expExistente || { id:uid(), categoria:cats[0], descricao:"", valor:"", data:todayISO() };
+    var exp = expExistente || { id:uid(), categoria:cats[0], descricao:"", valor:"", data:todayISO(), tipo:"diaadia" };
     if(exp.categoria && cats.indexOf(exp.categoria)===-1) cats = cats.concat([exp.categoria]);
     modalLayer.innerHTML =
       '<div class="modal-backdrop"><div class="modal"><h3>'+(editing?"Editar gasto":"Novo gasto")+'</h3>'+
+      '<div class="field"><label>Tipo</label><select id="e_tipo">'+EXPENSE_TIPOS.map(function(t){return '<option value="'+t+'"'+((exp.tipo||"diaadia")===t?" selected":"")+'>'+EXPENSE_TIPO_LABEL[t]+'</option>';}).join("")+'</select></div>'+
+      '<div class="field-hint" style="margin-top:-6px;">Dia a dia: gastos operacionais correntes. Empresa: IA, equipamento, mensalidade CNPJ e afins.</div>'+
       '<div class="field"><label>Categoria</label><select id="e_cat">'+cats.map(function(c){return '<option'+(exp.categoria===c?" selected":"")+'>'+c+'</option>';}).join("")+'</select></div>'+
       '<div class="field"><label>Descrição</label><input id="e_desc" value="'+escapeHtml(exp.descricao||"")+'" placeholder="Ex: Campanha WhatsApp — 1 dia"></div>'+
       '<div class="field-row"><div class="field"><label>Valor (R$)</label><input id="e_valor" type="number" step="0.01" value="'+(exp.valor||"")+'"></div><div class="field"><label>Data</label><input id="e_data" type="date" value="'+(exp.data||todayISO())+'"></div></div>'+
@@ -3102,9 +3154,34 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     document.getElementById("e_save").addEventListener("click", function(){
       var valor = parseFloat(document.getElementById("e_valor").value)||0;
       if(valor<=0){ document.getElementById("e_valor").focus(); return; }
-      exp.categoria = document.getElementById("e_cat").value; exp.descricao = document.getElementById("e_desc").value.trim(); exp.valor = valor; exp.data = document.getElementById("e_data").value || todayISO();
+      exp.tipo = document.getElementById("e_tipo").value; exp.categoria = document.getElementById("e_cat").value; exp.descricao = document.getElementById("e_desc").value.trim(); exp.valor = valor; exp.data = document.getElementById("e_data").value || todayISO();
       if(!editing) ws.expenses.push(exp);
       pushLog(ws, (editing?"Gasto atualizado: ":"Gasto: ")+fmtBRL(valor)+" em "+exp.categoria); saveState(); closeModal(); renderAll();
+    });
+  }
+  function openReceitaModal(recExistente){
+    var editing = !!recExistente;
+    var ws = activeWs();
+    var rec = recExistente || { id:uid(), descricao:"", valor:"", data:todayISO(), categoria:"Aporte próprio" };
+    modalLayer.innerHTML =
+      '<div class="modal-backdrop"><div class="modal"><h3>'+(editing?"Editar receita":"Nova receita")+'</h3>'+
+      '<div class="field-hint" style="margin-bottom:2px;">Pra dinheiro que entra fora do fluxo normal de cliente — aporte próprio, investimento, etc.</div>'+
+      '<div class="field"><label>Descrição</label><input id="r_desc" value="'+escapeHtml(rec.descricao||"")+'" placeholder="Ex: Aporte próprio pra investir na empresa"></div>'+
+      '<div class="field"><label>Categoria</label><input id="r_cat" value="'+escapeHtml(rec.categoria||"Aporte próprio")+'" placeholder="Ex: Aporte próprio, Investimento, Outro"></div>'+
+      '<div class="field-row"><div class="field"><label>Valor (R$)</label><input id="r_valor" type="number" step="0.01" value="'+(rec.valor||"")+'"></div><div class="field"><label>Data</label><input id="r_data" type="date" value="'+(rec.data||todayISO())+'"></div></div>'+
+      '<div class="modal-actions">'+(editing?'<button class="danger-link" id="r_delete">Excluir</button>':'')+'<button class="btn" id="r_cancel">Cancelar</button><button class="btn primary" id="r_save">Salvar</button></div></div></div>';
+    document.getElementById("r_cancel").addEventListener("click", closeModal);
+    if(editing){
+      document.getElementById("r_delete").addEventListener("click", function(){
+        if(confirm("Excluir esta receita?")){ ws.receitasExtras = ws.receitasExtras.filter(function(x){return x.id!==rec.id;}); saveState(); closeModal(); renderAll(); }
+      });
+    }
+    document.getElementById("r_save").addEventListener("click", function(){
+      var valor = parseFloat(document.getElementById("r_valor").value)||0;
+      if(valor<=0){ document.getElementById("r_valor").focus(); return; }
+      rec.descricao = document.getElementById("r_desc").value.trim() || "Receita avulsa"; rec.categoria = document.getElementById("r_cat").value.trim() || "Aporte próprio"; rec.valor = valor; rec.data = document.getElementById("r_data").value || todayISO();
+      if(!editing) ws.receitasExtras.push(rec);
+      pushLog(ws, (editing?"Receita atualizada: ":"Receita: ")+fmtBRL(valor)+" — "+rec.descricao); saveState(); closeModal(); renderAll();
     });
   }
   function openCategoriaModal(){
@@ -3519,16 +3596,18 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
     var isDropship = ws.tipo==="dropshipping";
     var monthExpenses = ws.expenses.filter(function(e){ return inThisMonth(e.data); });
     var gastos = monthExpenses.reduce(function(s,e){return s+Number(e.valor||0);},0);
+    var gastosEmpresa = monthExpenses.filter(function(e){ return e.tipo==="empresa"; }).reduce(function(s,e){return s+Number(e.valor||0);},0);
+    var receitaExtraMes = receitasExtrasMonthTotal(ws);
     var receita, corpoTitulo, corpoHtml;
     if(isDropship){
       var monthVendas = ws.vendas.filter(function(v){ return inThisMonth(v.data); });
-      receita = monthVendas.reduce(function(s,v){return s+Number(v.valorVenda||0);},0);
+      receita = monthVendas.reduce(function(s,v){return s+Number(v.valorVenda||0);},0) + receitaExtraMes;
       gastos += monthVendas.reduce(function(s,v){return s+Number(v.custoTotal||0);},0);
       corpoTitulo = "Vendas do mês ("+monthVendas.length+")";
       corpoHtml = monthVendas.length ? monthVendas.map(function(v){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(v.produtoNome)+'</td><td style="padding:6px 4px;">'+v.quantidade+'x</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(v.valorVenda)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhuma venda neste mês.</td></tr>';
     } else {
       var monthLeads = ws.leads.filter(function(l){ return l.stage==="fechado" && inThisMonth(l.dataFechamento||l.data); });
-      receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0) + servicosExtrasMonthTotal(ws, true);
+      receita = monthLeads.reduce(function(s,l){return s+Number(l.valor||0);},0) + servicosExtrasMonthTotal(ws, true) + receitaExtraMes;
       corpoTitulo = "Leads fechados ("+monthLeads.length+")";
       corpoHtml = monthLeads.length ? monthLeads.map(function(l){return '<tr style="border-bottom:1px solid #eee;"><td style="padding:6px 4px;">'+escapeHtml(l.nome)+'</td><td style="padding:6px 4px;">'+STAGE_LABEL[l.stage]+'</td><td style="padding:6px 4px;text-align:right;">'+fmtBRL(l.valor)+'</td></tr>';}).join("") : '<tr><td style="padding:10px 4px;color:#999;" colspan="3">Nenhum lead fechado neste mês.</td></tr>';
     }
@@ -3545,8 +3624,8 @@ parse_Primary(n.content)}catch(l){}a="/EncryptionInfo";n=Qe.find(e,a);if(!n||!n.
       '<h1 style="font-size:22px;margin:0 0 2px;">Relatório mensal — '+escapeHtml(ws.nome)+'</h1>'+
       '<div style="color:#666;font-size:13px;margin-bottom:24px;text-transform:capitalize;">'+monthLabel+'</div>'+
       '<div style="display:flex;gap:24px;margin-bottom:28px;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:14px 0;">'+
-        '<div><div style="font-size:11px;color:#666;">RECEITA</div><div style="font-size:20px;">'+fmtBRL(receita)+'</div></div>'+
-        '<div><div style="font-size:11px;color:#666;">GASTOS</div><div style="font-size:20px;">'+fmtBRL(gastos)+'</div></div>'+
+        '<div><div style="font-size:11px;color:#666;">RECEITA</div><div style="font-size:20px;">'+fmtBRL(receita)+'</div>'+(receitaExtraMes>0?'<div style="font-size:10px;color:#999;">inclui '+fmtBRL(receitaExtraMes)+' de receita avulsa</div>':'')+'</div>'+
+        '<div><div style="font-size:11px;color:#666;">GASTOS</div><div style="font-size:20px;">'+fmtBRL(gastos)+'</div>'+(gastosEmpresa>0?'<div style="font-size:10px;color:#999;">dos quais '+fmtBRL(gastosEmpresa)+' de gastos de empresa</div>':'')+'</div>'+
         '<div><div style="font-size:11px;color:#666;">LUCRO</div><div style="font-size:20px;">'+fmtBRL(receita-gastos)+'</div></div></div>'+
       mrrBlocoHtml+
       '<h2 style="font-size:15px;">'+corpoTitulo+'</h2>'+
